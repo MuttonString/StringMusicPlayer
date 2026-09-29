@@ -3,12 +3,12 @@
     "stringMusic": "String Music",
     "noOptions": "No results",
     "clear": "Clear",
-    "imageFile": "Image files",
-    "allFile": "All files"
+    "imageFiles": "Image files",
+    "supportedAudioFiles": "Supported audio files",
+    "allFiles": "All files"
   },
   "msg": {
     "devOptionEnabled": "Developer options have been enabled.",
-    "areYouSure": "Are you sure to continue?",
     "loadAudioFailed": "Failed to load this audio.",
     "playAudioFailed": "Failed to play this audio."
   },
@@ -32,7 +32,25 @@
     "prevSentence": "Previous sentence",
     "next10Sec": "Forward 10 seconds",
     "nextSentence": "Next sentence",
-    "moreOpt": "More options"
+    "playbackMode": "Playback mode",
+    "noRepeat": "Stop when ended",
+    "repeatOne": "Loop single song",
+    "repeatQueue": "Loop the queue",
+    "shuffle": "Shuffle play",
+    "playQueue": "Play queue",
+    "favorite": "Favorite",
+    "moreOpt": "More options",
+    "info": "Song infomation",
+    "download": "Download",
+    "share": "Share",
+    "volume": "Volume",
+    "settings": "Playback settings",
+    "search": "Search by title or artist",
+    "total": "{{count}} total",
+    "selected": "{{selected}} of {{count}} selected",
+    "removeAll": "Remove all",
+    "removeSelected": "Remove selected",
+    "loading": "Loading files..."
   },
   "titleBar": {
     "navigator": "Navigator",
@@ -42,11 +60,8 @@
   },
   "footer": {
     "refresh": "Refresh",
-    "networkSim": "Emulate network status",
-    "none": "No emulation",
-    "slow": "Slow",
-    "offline": "Offline",
     "visionSim": "Emulate vision deficiency",
+    "none": "No emulation",
     "blurred": "Blurred vision",
     "protanopia": "Protanopia",
     "deuteranopia": "Deuteranopia",
@@ -61,9 +76,8 @@
     "artistCollection": "Artist Collection",
     "albumCollection": "Album Collection",
     "mvCollection": "MV Collection",
-    "songCollection": "Favorite Songs",
-    "playlistCollection": "Playlist Collection",
-    "myPlaylist": "My Playlist"
+    "favoriteSongs": "Favorite Songs",
+    "playlist": "Playlist"
   },
   "drawer": {
     "download": "Downloads",
@@ -94,6 +108,7 @@
     "mica": "Mica",
     "singlePicture": "Single picture",
     "randomPictures": "Random pictures",
+    "defaultPicture": "Default picture",
     "opacity": "Opacity",
     "selectPicture": "Select picture",
     "selectFolder": "Select folder",
@@ -105,6 +120,23 @@
     "advancedMaterial": "Advanced material",
     "sharpStyle": "Sharp style",
     "animationDuration": "Animation duration",
+
+    "playback": "Playback",
+    "outputDevice": "Audio output device",
+    "showAudioWave": "Show audio waveform at progress bar",
+    "never": "Never",
+    "hovering": "When hovering",
+    "always": "Always",
+    "coverRotation": "Media bar cover rotation",
+    "coverRotationTip": "It will not be shown when the window is too narrow.",
+    "useCoverAsIcon": "Use music cover as window icon",
+    "useMusicTitleAsWindowTitle": "Use music title as window title",
+    "volume": "Volume",
+    "canOver100": "Over 100 allowed",
+    "canOver100Tip": "Volume over 100 may cause distortion.",
+    "speed": "Playback speed",
+    "speedMark": "{{value}} reversed",
+    "preservePitch": "Preserve pitch",
 
     "about": "About",
     "unknown": "Unknown",
@@ -124,9 +156,7 @@
     "script": "Script",
     "scriptWarning": "Do not paste untrusted code here.",
     "openAppdata": "Open app data directory",
-    "openLog": "Open log directory",
-    "throwError": "Throw an error",
-    "crash": "Create a crash"
+    "openLog": "Open log directory"
   },
   "color": {
     "red": "Red",
@@ -178,5 +208,13 @@
     "minimize": "Minimize to tray",
     "exit": "Exit application",
     "neverAsk": "Do not ask again next time"
+  },
+  "home": {
+    "welcome": "Welcome",
+    "desc": "Use this applicaton to play local or online music.",
+    "openFiles": "Open files",
+    "openFolders": "Open folders",
+    "openUrls": "Open URLs",
+    "openUrlsTip": "One URL per line"
   }
 }

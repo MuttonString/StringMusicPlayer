@@ -1,5 +1,3 @@
-import AccountBoxSharpIcon from '@mui/icons-material/AccountBoxSharp';
-import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
 import Avatar from '@mui/material/Avatar';
 import IconButton from '@mui/material/IconButton';
 import Input from '@mui/material/Input';
@@ -13,18 +11,17 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AppIcon from '../../../assets/icon.svg?react';
 import { BASE_COMPONENT } from '../../../constants/animation';
-import { PRIMARY_MODIFIER_KEY } from '../../../constants/keys';
 import { IS_APPLE, IS_DESKTOP } from '../../../constants/os';
 import {
   MAIN_WINDOW,
   MD_WIDTH,
   SIDE_BAR_WIDTH,
 } from '../../../constants/window';
+import useShortcutKey from '../../../hooks/useShortcutKey';
 import useWidthQuery from '../../../hooks/useWidthQuery';
 import { useConfig } from '../../../providers/ConfigProvider';
 import { useNavigator } from '../../../providers/NavigatorProvider';
 import { KeyCode } from '../../../types/keyCode';
-import { showShortcutKey } from '../../../utils/shortcutKey';
 import { compareVersion } from '../../../utils/version';
 import { isRTL } from '../../../utils/window';
 import MaterialIcon from '../../ui/MaterialIcon';
@@ -37,7 +34,7 @@ const isNewSegoeSupported =
 export default function TitleBar() {
   const [config] = useConfig();
   const wide = useWidthQuery(MD_WIDTH);
-  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const { goBack, goForward, canGoBack, canGoForward } = useNavigator();
   const { t } = useTranslation();
   const sharp = config.sharpStyle;
@@ -65,14 +62,30 @@ export default function TitleBar() {
 
   useEffect(() => {
     if (!IS_APPLE) return;
-    const unlisten = MAIN_WINDOW.onResized(async () =>
-      setIsFullScreen(await MAIN_WINDOW.isFullscreen()),
-    );
+    const unlisten = MAIN_WINDOW.onResized(async () => {
+      const fullscreen = await MAIN_WINDOW.isFullscreen();
+      setIsFullscreen(fullscreen);
+      if (fullscreen) {
+        document.body.classList.add('fullscreen');
+      } else {
+        document.body.classList.remove('fullscreen');
+      }
+    });
 
     return () => {
       unlisten.then((fn) => fn());
     };
   }, []);
+
+  const [backKey, back] = useShortcutKey(goBack, [
+    KeyCode.Alt,
+    isRTL() ? KeyCode.Right : KeyCode.Left,
+  ]);
+
+  const [forwardKey, forward] = useShortcutKey(goForward, [
+    KeyCode.Alt,
+    isRTL() ? KeyCode.Left : KeyCode.Right,
+  ]);
 
   return (
     <header
@@ -90,7 +103,7 @@ export default function TitleBar() {
             exit='hidden'
             className='overflow-clip flex items-center gap-2 pointer-events-none whitespace-nowrap'
             style={
-              !IS_APPLE || isFullScreen ? undefined : { visibility: 'hidden' }
+              !IS_APPLE || isFullscreen ? undefined : { visibility: 'hidden' }
             }
           >
             <AppIcon className='min-w-6 h-6' />
@@ -111,7 +124,7 @@ export default function TitleBar() {
           <NavigatorList
             className='w-(--side-bar-width)!'
             onButtonClicked={() => setNavigatorOpen(false)}
-            noAnimation
+            inDrawer
           />
         </SwipeableDrawer>
         {!wide && (
@@ -126,49 +139,43 @@ export default function TitleBar() {
           </Tip>
         )}
 
-        <Tip
-          disabled={!canGoBack}
-          title={showShortcutKey(
-            t('titleBar.back'),
-            KeyCode.Alt,
-            isRTL() ? KeyCode.Right : KeyCode.Left,
-          )}
-        >
+        <Tip disabled={!canGoBack} title={t('titleBar.back') + ' ' + backKey}>
           <IconButton
             aria-label={t('titleBar.back')}
             size='small'
             disabled={!canGoBack}
-            onClick={goBack}
+            onClick={back}
           >
             <MaterialIcon name={isRTL() ? 'arrowForward' : 'arrowBack'} />
           </IconButton>
         </Tip>
         <Tip
           disabled={!canGoForward}
-          title={showShortcutKey(
-            t('titleBar.forward'),
-            KeyCode.Alt,
-            isRTL() ? KeyCode.Left : KeyCode.Right,
-          )}
+          title={t('titleBar.forward') + ' ' + forwardKey}
         >
           <IconButton
             aria-label={t('titleBar.forward')}
             size='small'
             disabled={!canGoForward}
-            onClick={goForward}
+            onClick={forward}
           >
             <MaterialIcon name={isRTL() ? 'arrowBack' : 'arrowForward'} />
           </IconButton>
         </Tip>
 
         {wide && (
-          <Tip title={showShortcutKey('', PRIMARY_MODIFIER_KEY, 'E')}>
+          <Tip
+            title={
+              ''
+              //TODO
+            }
+          >
             <Input
               aria-label={t('titleBar.search')}
+              placeholder={t('titleBar.search')}
               size='small'
               fullWidth
               className='max-w-50 ms-8'
-              placeholder={t('titleBar.search')}
               startAdornment={
                 <IconButton
                   aria-label={t('titleBar.search')}
@@ -184,18 +191,16 @@ export default function TitleBar() {
 
         {!wide && (
           <Tip
-            title={showShortcutKey(
-              t('titleBar.search'),
-              PRIMARY_MODIFIER_KEY,
-              'E',
-            )}
+            title={
+              t('titleBar.search') + ' '
+              //TODO
+            }
           >
             <IconButton
-              aria-label={t('titleBar.search')}
               size='small'
               onClick={(e) => {
                 setSearchAnchor(e.currentTarget);
-                setTimeout(() => popoverInputRef.current!.focus(), 0);
+                setTimeout(() => popoverInputRef.current!.focus());
               }}
             >
               <MaterialIcon name='search' />
@@ -210,6 +215,7 @@ export default function TitleBar() {
         >
           <div className='p-2 w-50'>
             <Input
+              aria-label={t('titleBar.search')}
               placeholder={t('titleBar.search')}
               fullWidth
               inputRef={popoverInputRef}
@@ -229,12 +235,10 @@ export default function TitleBar() {
         </Popover>
 
         <Tip
-          title={showShortcutKey(
-            t('titleBar.songRecognition'),
-            PRIMARY_MODIFIER_KEY,
-            KeyCode.Shift,
-            'E',
-          )}
+          title={
+            t('titleBar.songRecognition') + ' '
+            //TODO
+          }
         >
           <IconButton aria-label={t('titleBar.songRecognition')} size='small'>
             <MaterialIcon name='mic' />
@@ -248,28 +252,27 @@ export default function TitleBar() {
           IS_DESKTOP && !IS_APPLE && 'me-[calc(3*var(--title-bar-btn-width))]',
         )}
       >
-        <Tip title={t('titleBar.accounts')}>
-          <IconButton size='small'>
-            <Avatar
-              src={
-                'https://i0.hdslb.com/bfs/face/84ed014dc45788a0f5ed1a672d2cb00f929e9f23.jpg'
-              }
-              sx={{
-                width: '2rem',
-                height: '2rem',
-              }}
-            >
-              {sharp ? <AccountBoxSharpIcon /> : <AccountCircleRoundedIcon />}
-            </Avatar>
-          </IconButton>
-        </Tip>
+        <div className='w-(--title-bar-btn-width) text-center'>
+          <Tip title={t('titleBar.accounts')}>
+            <IconButton size='small'>
+              <Avatar
+                src={''}
+                sx={{
+                  width: '2rem',
+                  height: '2rem',
+                }}
+              >
+                <MaterialIcon name='accountCircle' color='action' />
+              </Avatar>
+            </IconButton>
+          </Tip>
+        </div>
         {IS_DESKTOP && (
           <Tip
-            title={showShortcutKey(
-              t('titleBar.miniWindow'),
-              PRIMARY_MODIFIER_KEY,
-              'M',
-            )}
+            title={
+              t('titleBar.miniWindow') + ' '
+              //TODO
+            }
           >
             <button
               aria-label={t('titleBar.miniWindow')}

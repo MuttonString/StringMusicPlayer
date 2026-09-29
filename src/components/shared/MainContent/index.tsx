@@ -2,12 +2,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router';
 import { PAGE } from '../../../constants/animation';
+import { useAudio } from '../../../providers/AudioProvider';
 import { useNavigator } from '../../../providers/NavigatorProvider';
 import { PageOperation } from '../../../types/navigator';
 
 export default function MainContent() {
   const { lastOperation } = useNavigator();
   const location = useLocation();
+  const media = useAudio();
 
   const enterAnimation = useMemo(() => {
     switch (lastOperation) {
@@ -31,7 +33,8 @@ export default function MainContent() {
           variants={PAGE}
           initial={enterAnimation}
           whileInView='normal'
-          className='flex-1 min-h-0 overflow-auto p-2 pb-[calc(var(--media-bar-height)+0.5rem)]'
+          className='flex-1 min-h-0 overflow-auto p-2'
+          custom={!!media.playQueue[media.currIdx]}
         >
           <Outlet />
         </motion.div>

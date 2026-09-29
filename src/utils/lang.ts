@@ -24,7 +24,7 @@ export function detectLang(text: string) {
  * 判断语言是否是内置的
  */
 export function isBuiltInLang(langBaseDirPath: string) {
-  return [BuiltInLang.zh, BuiltInLang.en].includes(
+  return [BuiltInLang.zhHans, BuiltInLang.zhHant, BuiltInLang.en].includes(
     langBaseDirPath as BuiltInLang,
   );
 }

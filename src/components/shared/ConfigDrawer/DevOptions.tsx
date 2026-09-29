@@ -4,9 +4,7 @@ import FormHelperText from '@mui/material/FormHelperText';
 import Switch from '@mui/material/Switch';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { invoke } from '@tauri-apps/api/core';
 import { appDataDir, appLogDir } from '@tauri-apps/api/path';
-import { ask } from '@tauri-apps/plugin-dialog';
 import { openPath } from '@tauri-apps/plugin-opener';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -33,9 +31,6 @@ export default function DevOptions({ refs }: RefsProp) {
     },
     [refs],
   );
-
-  const [err, setErr] = useState(false);
-  if (err) throw Error('(╯°Д°)╯ ┻━┻');
 
   return (
     <div>
@@ -90,7 +85,8 @@ export default function DevOptions({ refs }: RefsProp) {
             <TextField
               multiline
               fullWidth
-              rows={4}
+              size='small'
+              rows={5}
               className='[&_textarea]:font-mono!'
               value={script}
               onChange={(e) => setScript(e.target.value)}
@@ -131,50 +127,6 @@ export default function DevOptions({ refs }: RefsProp) {
             </Button>
           </>
         )}
-
-        <Button
-          fullWidth
-          variant='outlined'
-          color={'warning'}
-          onClick={async () => {
-            if (
-              await ask(
-                t('msg.areYouSure', {
-                  title: t('config.throwError'),
-                  kind: 'warning',
-                }),
-                t('common.stringMusic'),
-              )
-            ) {
-              setErr(true);
-            }
-          }}
-          ref={addRef('throwError')}
-        >
-          {t('config.throwError')}
-        </Button>
-
-        <Button
-          fullWidth
-          variant='outlined'
-          color={'error'}
-          onClick={async () => {
-            if (
-              await ask(
-                t('msg.areYouSure', {
-                  title: t('config.crash'),
-                  kind: 'warning',
-                }),
-                t('common.stringMusic'),
-              )
-            ) {
-              invoke('crash');
-            }
-          }}
-          ref={addRef('crash')}
-        >
-          {t('config.crash')}
-        </Button>
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ import type { RefsProp } from '../../../types/component';
 import { CloseWindowAction } from '../../../types/config';
 import LabelControlPair from '../../ui/LabelControlPair';
 import MaterialIcon from '../../ui/MaterialIcon';
-import LangDialog from '../LangDialog';
+import LangDialog from './LangDialog';
 
 export default function Common({ refs }: RefsProp) {
   const { t } = useTranslation();

@@ -6,7 +6,8 @@ import TextField from '@mui/material/TextField';
 import { invoke } from '@tauri-apps/api/core';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { FontName } from '../../../types/backend';
+import type { FontName } from '../../../types/event';
+import { KeyCode } from '../../../types/keyCode';
 import { getLangs } from '../../../utils/lang';
 
 interface Props {
@@ -16,8 +17,7 @@ interface Props {
 }
 
 export default function FontSelect({ value, onChange, onBlur }: Props) {
-  const [fonts, setFonts] = useState<FontName[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [fonts, setFonts] = useState<FontName[]>();
   const [open, setOpen] = useState(false);
   const { t } = useTranslation();
   const langs = useMemo(getLangs, [t]);
@@ -27,20 +27,18 @@ export default function FontSelect({ value, onChange, onBlur }: Props) {
       <Autocomplete
         openOnFocus
         size='small'
-        loading={loading}
+        loading={!fonts}
         open={open}
         onOpen={() => {
           setOpen(true);
-          if (fonts.length) return;
-          setLoading(true);
+          if (fonts) return;
           invoke<FontName[]>('get_system_fonts').then((val) => {
             setFonts(val);
-            setLoading(false);
           });
         }}
         onClose={() => setOpen(false)}
         freeSolo
-        options={fonts}
+        options={fonts || []}
         getOptionLabel={(option) =>
           typeof option === 'string' ? option : option.original
         }
@@ -83,6 +81,11 @@ export default function FontSelect({ value, onChange, onBlur }: Props) {
         )}
         inputValue={value}
         onInputChange={(_, val) => onChange(val)}
+        onKeyDown={(e) => {
+          if (e.key === KeyCode.Enter) {
+            (e.target as HTMLDivElement).blur();
+          }
+        }}
         onBlur={onBlur}
       />
       <FormHelperText>{t('config.searchFontDesc')}</FormHelperText>

@@ -5,8 +5,6 @@ import CircularProgress from '@mui/material/CircularProgress';
 import GlobalStyles from '@mui/material/GlobalStyles';
 import {
   createTheme,
-  darken,
-  lighten,
   StyledEngineProvider,
   ThemeProvider,
 } from '@mui/material/styles';
@@ -61,14 +59,8 @@ export default function StyleProvider({ children }: ChildrenProp) {
       direction,
       defaultColorScheme,
       palette: {
-        primary: { main: color.main },
-        secondary: { main: color.main },
-        background: {
-          default:
-            defaultColorScheme === 'light'
-              ? lighten(color.light, 0.6)
-              : darken(color.dark, 0.8),
-        },
+        primary: { main: color },
+        secondary: { main: color },
       },
       shape: {
         borderRadius: sharpStyle ? 0 : 8,
@@ -89,11 +81,6 @@ export default function StyleProvider({ children }: ChildrenProp) {
         fontFamily,
       },
       components: {
-        MuiDialog: {
-          styleOverrides: {
-            paper: { backgroundColor: 'var(--mui-palette-background-default)' },
-          },
-        },
         MuiPopover: {
           defaultProps: {
             slots: { transition: Fade },
@@ -136,20 +123,19 @@ export default function StyleProvider({ children }: ChildrenProp) {
             clearIcon: <MaterialIcon name='clear' fontSize='small' />,
             popupIcon: <MaterialIcon name='arrowDropDown' />,
             noOptionsText: t('common.noOptions'),
-            loadingText: (
-              <div className='text-center'>
-                <CircularProgress />
-              </div>
-            ),
+            loadingText: <CircularProgress size={24} />,
             clearText: t('common.clear'),
+            forcePopupIcon: false,
           },
           styleOverrides: {
             option: sharpStyle
               ? undefined
               : {
                   borderRadius: '8px',
-                  padding: '3px 8px !important',
-                  margin: '3px 8px',
+                  paddingLeft: '8px',
+                  paddingRight: '8px',
+                  marginLeft: '8px',
+                  marginRight: '8px',
                   width: 'calc(100% - 16px)',
                 },
           },
@@ -164,11 +150,9 @@ export default function StyleProvider({ children }: ChildrenProp) {
         MuiListItemButton: {
           styleOverrides: {
             root: sharpStyle
-              ? { padding: '4px 16px' }
+              ? undefined
               : {
                   borderRadius: '8px',
-                  padding: '4px 16px',
-                  margin: '4px 0',
                 },
           },
         },
@@ -178,7 +162,10 @@ export default function StyleProvider({ children }: ChildrenProp) {
               ? undefined
               : {
                   borderRadius: '8px',
-                  margin: '3px 8px',
+                  paddingLeft: '8px',
+                  paddingRight: '8px',
+                  marginLeft: '8px',
+                  marginRight: '8px',
                 },
           },
         },
@@ -208,7 +195,11 @@ export default function StyleProvider({ children }: ChildrenProp) {
       <GlobalStyles styles='@layer theme, base, mui, components, utilities;' />
       <CacheProvider value={cache}>
         <ThemeProvider theme={theme}>
-          <MotionConfig transition={{ duration: DEFAULT_DURATION * duration }}>
+          <MotionConfig
+            transition={{ duration: DEFAULT_DURATION * duration }}
+            reducedMotion={duration ? 'user' : 'always'}
+            isStatic={!duration}
+          >
             {children}
           </MotionConfig>
         </ThemeProvider>

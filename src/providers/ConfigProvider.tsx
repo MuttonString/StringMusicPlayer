@@ -9,8 +9,6 @@ import {
 } from 'react';
 import { WINDOW_LABEL } from '../constants/window';
 import { applyConfigFnMap } from '../handlers/config';
-import type { EventPayload } from '../types/backend';
-import { BackendEvent } from '../types/backend';
 import type { ChildrenProp } from '../types/component';
 import type { AppConfig, ConfigContext } from '../types/config';
 import {
@@ -24,13 +22,15 @@ import {
   RomajiMode,
   ShowAudioWave,
 } from '../types/config';
+import type { EventPayload } from '../types/event';
+import { BackendEvent } from '../types/event';
 import { decompress } from '../utils/data';
 
 const emitChanging = (obj: Partial<AppConfig>) => {
-  emit<EventPayload<typeof obj>>(BackendEvent.ConfigChanged, {
-    label: WINDOW_LABEL,
-    data: obj,
-  });
+  emit<EventPayload<typeof obj>>(BackendEvent.ConfigChanged, [
+    WINDOW_LABEL,
+    obj,
+  ]);
 
   // 只在主窗口执行写入文件操作
   if (WINDOW_LABEL === 'main') {
@@ -87,31 +87,27 @@ const initVal: AppConfig = {
   jpRomaji: RomajiMode.ByWord,
   yahooAppId: '0',
   furigana: false,
-  katakanaRuby: false,
   kanjiFix: true,
   removeParenthesisPron: true,
   hangulPron: false,
   cyrillicPron: CyrillicToLatinMode.Disable,
   otherPron: false,
 
-  audioDevice: '',
-  showAudioWave: ShowAudioWave.OnHover,
-  coverRotate: true,
+  outputDevice: '',
+  showAudioWave: ShowAudioWave.Hovering,
+  coverRotation: true,
   useCoverAsIcon: true,
   useMusicTitleAsWindowTitle: true,
   seekBySentence: true,
   replaceWholeList: false,
   replayDelay: 2,
-  volume: 100,
-  mute: false,
+  volume: [100, false],
   dynamicVolume: false,
-  canVolumnOver100: false,
-  speed: 1,
+  speed: [1, true],
   audioFade: false,
   enableEqualizer: false,
   equalizerSliderMoveTogether: true,
   equalizer: [0, 0, 0, 0, 0, 0, 0, 0, 0],
-  detune: 0,
   playbackMode: PlaybackMode.RepeatQueue,
 
   recommendation: true,
@@ -119,6 +115,7 @@ const initVal: AppConfig = {
   searchHistory: true,
   savePlaybackStatus: true,
   keepDownloadHistory: true,
+  readClipboard: true,
 
   enableDevOptions: false,
   forceRTL: false,
@@ -128,9 +125,14 @@ const initVal: AppConfig = {
 
 const reducer = (prev: AppConfig, action: Partial<AppConfig>) => {
   Object.entries(action).forEach(([key, value]) => {
-    applyConfigFnMap[key as keyof AppConfig]?.(value as never);
+    applyConfigFnMap[key as keyof AppConfig]?.(
+      value as never,
+      prev[key as never],
+    );
   });
-  return { ...prev, ...action };
+  const newVal = { ...prev, ...action };
+  window.__CONFIG__ = newVal;
+  return newVal;
 };
 
 const Context = createContext<ConfigContext>([initVal, emitChanging]);
@@ -144,7 +146,7 @@ export function ConfigProvider({ children }: ChildrenProp) {
   useEffect(() => {
     const unlisten = listen<EventPayload<Partial<AppConfig>>>(
       BackendEvent.ConfigChanged,
-      (e) => dispatch(e.payload.data),
+      (e) => dispatch(e.payload[1]),
     );
 
     const loadConfig = async () => {

@@ -11,7 +11,6 @@ export const enum KeyCode {
   Alt = 'Alt',
   Ctrl = 'Control',
   Shift = 'Shift',
-  Meta = 'Meta',
   Space = ' ',
   Tab = 'Tab',
   Esc = 'Escape',

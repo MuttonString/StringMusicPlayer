@@ -24,6 +24,9 @@ export default function Tip({ disabled, children, title, ...props }: Props) {
           : title
       }
       slotProps={{
+        tooltip: {
+          sx: { maxWidth: '100%' },
+        },
         popper: {
           sx: {
             [`&.${tooltipClasses.popper}[data-popper-placement*="bottom"] .${tooltipClasses.tooltip}`]:

@@ -4,7 +4,7 @@ import {
   WebviewWindow,
 } from '@tauri-apps/api/webviewWindow';
 import { type, version } from '@tauri-apps/plugin-os';
-import type { WindowLabel } from '../types/backend';
+import type { WindowLabel } from '../types/event';
 import { compareVersion } from '../utils/version';
 
 export const DEFAULT_WINDOW_ICON = (await defaultWindowIcon())!;

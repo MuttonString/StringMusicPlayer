@@ -1,5 +1,6 @@
 import type { ParseJpnTextResp, ShareDataResp } from '../types/request';
 import { compress, decompress, getHash, getRandomKey } from '../utils/data';
+import { fetchAlt } from '../utils/fetch';
 
 const VALIDITY_PERIOD = 15 * 24 * 3600 * 1000;
 
@@ -49,7 +50,7 @@ export async function fetchWithCache(
   }
 
   // 未命中缓存，调用网络接口
-  const resp = await fetch(url, options);
+  const resp = await fetchAlt(url, options);
 
   // 响应成功则缓存接口数据
   if (resp.status >= 200 && resp.status <= 299)
@@ -90,7 +91,7 @@ export async function shareData(data: any): Promise<ShareDataResp> {
   const key = 'StringMusic_' + getRandomKey();
   const value = compress(data);
   const resp = await fetchWithCache(
-    '/_https://textdb.online/update/?v=1',
+    'https://textdb.online/update/?v=1',
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -111,7 +112,7 @@ export async function getSharedData(key: string) {
   if (!key.startsWith('StringMusic_') || key.length !== 32) {
     throw 'Invalid key.';
   }
-  const resp = await fetch('/_https://textdb.online/' + key);
+  const resp = await fetchAlt('https://textdb.online/' + key);
   return decompress(await resp.text());
 }
 
@@ -124,7 +125,7 @@ export async function parseJpnText(
   appID: string,
 ): Promise<ParseJpnTextResp> {
   const resp = await fetchWithCache(
-    '/_https://jlp.yahooapis.jp/jsonrpc?appid=' + appID,
+    'https://jlp.yahooapis.jp/jsonrpc?appid=' + appID,
     {
       method: 'POST',
       headers: {

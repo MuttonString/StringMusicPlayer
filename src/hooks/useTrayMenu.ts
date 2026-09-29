@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { IS_APPLE, IS_DESKTOP } from '../constants/os';
 import { DEFAULT_WINDOW_ICON } from '../constants/window';
 import { useAudio } from '../providers/AudioProvider';
-import { BackendEvent } from '../types/backend';
+import { BackendEvent } from '../types/event';
 import { destroyAll, raise } from '../utils/window';
 
 const menuRef = createRef<Menu>();
@@ -33,7 +33,7 @@ if (tray) console.info('Tray icon created.');
  */
 export default function useTrayMenu() {
   const { t } = useTranslation();
-  const media = useAudio();
+  const { playQueue, paused, pending } = useAudio();
 
   useEffect(() => {
     if (!tray) return;
@@ -42,29 +42,28 @@ export default function useTrayMenu() {
     tray.setTooltip(t('common.stringMusic'));
     tray.setMenu(menuRef.current || null);
   }, [t]);
-
   useEffect(() => {
     if (!tray) return;
 
     Menu.new({
       items: [
         {
-          text: t('media.prev'),
-          enabled: media.playQueue.length > 1,
+          text: t('prev'),
+          enabled: playQueue.length > 1,
           action() {
             emit(BackendEvent.Previous);
           },
         },
         {
-          text: t(media.paused ? 'media.play' : 'media.pause'),
-          enabled: !media.pending && media.playQueue.length > 0,
+          text: t(paused ? 'play' : 'pause'),
+          enabled: !pending && playQueue.length > 0,
           action() {
             emit(BackendEvent.Toggle);
           },
         },
         {
-          text: t('media.next'),
-          enabled: media.playQueue.length > 1,
+          text: t('next'),
+          enabled: playQueue.length > 1,
           action() {
             emit(BackendEvent.Next);
           },
@@ -103,5 +102,5 @@ export default function useTrayMenu() {
     return () => {
       menuRef.current?.close();
     };
-  }, [media.paused, media.pending, media.playQueue.length, t]);
+  }, [paused, pending, playQueue.length, t]);
 }

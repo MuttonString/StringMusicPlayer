@@ -1,28 +1,34 @@
 import Divider from '@mui/material/Divider';
-import Slider from '@mui/material/Slider';
 import { tooltipClasses } from '@mui/material/Tooltip';
 import { emit } from '@tauri-apps/api/event';
-import { AnimatePresence, motion } from 'framer-motion';
+import {
+  AnimatePresence,
+  motion,
+  useAnimationFrame,
+  useMotionValue,
+  useTransform,
+} from 'framer-motion';
 import type { PointerEvent } from 'react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import WaveformGenerator from 'waveform-generator-web';
+import { FADE_DURATION } from '../../../constants/animation';
 import { useAudio } from '../../../providers/AudioProvider';
 import { useConfig } from '../../../providers/ConfigProvider';
-import { BackendEvent } from '../../../types/backend';
+import type { Song } from '../../../types/audio';
 import { ShowAudioWave } from '../../../types/config';
+import { BackendEvent } from '../../../types/event';
+import { formatTime } from '../../../utils/data';
 import { isRTL } from '../../../utils/window';
+import SliderAlt from '../../ui/SliderAlt';
 import Tip from '../../ui/Tip';
 
-const formatTime = (seconds: number) => {
-  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-};
-
-const MotionSlider = motion.create(Slider);
+const MotionSlider = motion.create(SliderAlt);
 
 export default function Progress() {
   const [config] = useConfig();
   const media = useAudio();
-  const currSong = media.playQueue[media.currIdx];
+  const currSong = media.playQueue[media.currIdx] as Song | undefined;
+  const duration = currSong?.duration || 0;
 
   const draggingRef = useRef(false);
   const [sliderVal, setSliderVal] = useState(media.currentTime);
@@ -31,10 +37,33 @@ export default function Progress() {
     setSliderVal(media.currentTime);
   }, [media.currentTime]);
 
+  // 前端运算精确的播放进度，并定期从后端同步
+  const accurateTimePercent = useMotionValue(0);
+  useEffect(() => {
+    accurateTimePercent.set((media.currentTime / duration) * 100);
+  }, [accurateTimePercent, duration, media.currentTime]);
+
+  const playbackRate = config.speed[0];
+  const oneMsPercent = useMemo(
+    () => (duration ? (playbackRate / (duration * 1000)) * 100 : 0),
+    [duration, playbackRate],
+  );
+
+  useAnimationFrame((_, delta) => {
+    if (media.paused || media.pending) return;
+    const increment = delta * oneMsPercent;
+    accurateTimePercent.set(accurateTimePercent.get() + increment);
+  });
+
+  const clipPath = useTransform(
+    accurateTimePercent,
+    (val) => `inset(0 ${100 - val}% 0 0)`,
+  );
+  const playedWidth = useTransform(accurateTimePercent, (val) => val + '%');
+
   // 显示悬停处的时间
   const [sliderLabel, setSliderLabel] = useState('');
-  const duration = currSong?.duration || 0;
-  const [pointerX, setPointerX] = useState(NaN);
+  const pointerX = useMotionValue(NaN);
 
   const handlePointerMove = useCallback(
     (e: PointerEvent<HTMLDivElement>) => {
@@ -47,9 +76,9 @@ export default function Progress() {
       setSliderLabel(
         formatTime(Math.min(Math.floor(duration), Math.max(value, 0))),
       );
-      setPointerX(relativeX > rect.width || relativeX < 0 ? NaN : relativeX);
+      pointerX.set(relativeX > rect.width || relativeX < 0 ? NaN : relativeX);
     },
-    [duration],
+    [duration, pointerX],
   );
 
   // 显示波形
@@ -69,13 +98,16 @@ export default function Progress() {
   useEffect(() => {
     let cancelled = false;
     setWaveSrc(undefined);
-    if (showAudioWaveMode === ShowAudioWave.Never || !media.currArrayBuffer) {
+    if (showAudioWaveMode === ShowAudioWave.Never || !media.currBlobUrl) {
       return;
     }
 
-    const generator = new WaveformGenerator(media.currArrayBuffer);
-    generator
-      .getWaveform({
+    const getWaveform = async () => {
+      if (cancelled) return;
+      const generator = new WaveformGenerator(
+        await (await fetch(media.currBlobUrl)).arrayBuffer(),
+      );
+      const wave = await generator.getWaveform({
         waveformColor: primaryColor,
         waveformWidth: 2000,
         waveformHeight: 56,
@@ -83,165 +115,146 @@ export default function Progress() {
         barWidth: 1,
         barGap: 0,
         drawMode: 'png',
-      })
-      .then((val) => {
-        if (cancelled) return;
-        setWaveSrc(val);
-      })
-      .catch((err) => console.error('Failed to get waveform: ' + err));
+      });
+      if (cancelled) return;
+      setWaveSrc(wave);
+    };
+    getWaveform();
 
     return () => {
       cancelled = true;
     };
-  }, [media.currArrayBuffer, primaryColor, showAudioWaveMode]);
+  }, [media.currBlobUrl, primaryColor, showAudioWaveMode]);
 
   return (
-    <div className='flex gap-2 items-center'>
-      <div className='w-10'>{formatTime(sliderVal)}</div>
-      <Tip
-        disabled={media.pending}
-        title={sliderLabel}
-        placement='top'
-        enterDelay={0}
-        enterNextDelay={0}
-        enterTouchDelay={0}
-        arrow
-        followCursor
-        slotProps={{
-          popper: {
-            sx: {
-              [`&.${tooltipClasses.popper}[data-popper-placement*="top"] .${tooltipClasses.tooltip}`]:
-                {
-                  marginBottom: '20px',
-                },
+    currSong && (
+      <div className='flex gap-1 items-center'>
+        <div className='w-10 text-sm'>{formatTime(sliderVal)}</div>
+        <Tip
+          disabled={media.pending}
+          title={sliderLabel}
+          placement='top'
+          enterDelay={0}
+          enterNextDelay={0}
+          enterTouchDelay={0}
+          arrow
+          followCursor
+          slotProps={{
+            popper: {
+              sx: {
+                [`&.${tooltipClasses.popper}[data-popper-placement*="top"] .${tooltipClasses.tooltip}`]:
+                  {
+                    marginBottom: '20px',
+                  },
+              },
             },
-          },
-          tooltip: isNaN(pointerX) ? { sx: { display: 'none' } } : undefined,
-        }}
-      >
-        <motion.div
-          className='w-full flex h-7 relative'
-          onPointerMove={handlePointerMove}
-          onPointerLeave={() => setPointerX(NaN)}
-          onHoverStart={
-            showAudioWaveMode === ShowAudioWave.OnHover
-              ? () => setShowWave(true)
-              : undefined
-          }
-          onHoverEnd={
-            showAudioWaveMode === ShowAudioWave.OnHover
-              ? () => setShowWave(false)
-              : undefined
-          }
+            tooltip: isNaN(pointerX.get())
+              ? { sx: { display: 'none' } }
+              : undefined,
+          }}
         >
-          {/* 波形 */}
-          <AnimatePresence initial={false}>
-            {showWave && (
-              <motion.div
-                className='absolute h-7 w-full'
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{
-                  duration: config.animationDuration * 0.15,
-                }}
-              >
-                {/* 未播放波形 */}
-                {waveSrc && (
-                  <img
-                    className='absolute rtl:-scale-x-100 h-full w-full opacity-(--mui-palette-action-disabledOpacity)'
-                    alt=''
-                    src={waveSrc}
-                  />
-                )}
-                {/* 未播放中线 */}
-                <Divider className='absolute w-full top-[calc(50%-0.5px)]' />
-                {/* 已播放波形 */}
-                {waveSrc && (
-                  <motion.img
-                    className='absolute rtl:-scale-x-100 h-full w-full'
-                    initial={false}
-                    animate={{
-                      clipPath: `inset(0 ${100 - (sliderVal / duration) * 100}% 0 0)`,
-                    }}
-                    transition={{
-                      duration: draggingRef.current
-                        ? 0
-                        : config.animationDuration * 0.15,
-                    }}
-                    alt=''
-                    src={waveSrc}
-                  />
-                )}
-                {/* 已播放中线 */}
-                <motion.div
-                  className='absolute h-px top-[calc(50%-0.5px)] bg-primary-dark dark:bg-primary-light'
-                  initial={false}
-                  animate={{
-                    width: (sliderVal / duration) * 100 + '%',
-                  }}
-                  transition={{
-                    duration: draggingRef.current
-                      ? 0
-                      : config.animationDuration * 0.15,
-                  }}
-                />
-                {/* 播放位置指示 */}
-                <motion.div
-                  className='absolute h-full w-px bg-text-disabled'
-                  initial={false}
-                  animate={{
-                    insetInlineStart: (sliderVal / duration) * 100 + '%',
-                  }}
-                  transition={{
-                    duration: draggingRef.current
-                      ? 0
-                      : config.animationDuration * 0.15,
-                  }}
-                />
-                {/* 光标指示 */}
-                {!isNaN(pointerX) && (
-                  <div
-                    className='absolute h-full w-px bg-text-primary'
-                    style={{ insetInlineStart: pointerX - 0.5 + 'px' }}
-                  />
-                )}
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* 进度条 */}
-          <MotionSlider
-            className='absolute inset-0'
-            style={
-              showAudioWaveMode === ShowAudioWave.Never
-                ? undefined
-                : { cursor: 'default' }
+          <motion.div
+            className='w-full flex h-7 relative'
+            onPointerMove={handlePointerMove}
+            onPointerLeave={() => pointerX.set(NaN)}
+            onHoverStart={
+              showAudioWaveMode === ShowAudioWave.Hovering
+                ? () => setShowWave(true)
+                : undefined
             }
-            initial={false}
-            animate={{ opacity: showWave ? 0 : 1 }}
-            transition={{
-              duration: config.animationDuration * 0.15,
-            }}
-            size='small'
-            max={duration}
-            marks={currSong.marks?.map((item) => ({ value: item }))}
-            disabled={media.pending}
-            value={sliderVal}
-            onChange={(_, val) => {
-              draggingRef.current = true;
-              setSliderVal(val as number);
-            }}
-            onChangeCommitted={(_, val) => {
-              draggingRef.current = false;
-              emit(BackendEvent.SetPosition, val as number);
-            }}
-          />
-        </motion.div>
-      </Tip>
-      <div className='w-10 text-end'>
-        {formatTime(Math.floor(currSong.duration ?? 0))}
+            onHoverEnd={
+              showAudioWaveMode === ShowAudioWave.Hovering
+                ? () => setShowWave(false)
+                : undefined
+            }
+          >
+            {/* 波形 */}
+            <AnimatePresence initial={false}>
+              {showWave && (
+                <motion.div
+                  className='absolute h-7 w-full'
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{
+                    duration: config.animationDuration * FADE_DURATION,
+                  }}
+                >
+                  {/* 未播放波形 */}
+                  {waveSrc && (
+                    <img
+                      className='absolute rtl:-scale-x-100 h-full w-full opacity-(--mui-palette-action-disabledOpacity)'
+                      alt=''
+                      src={waveSrc}
+                    />
+                  )}
+                  {/* 未播放中线 */}
+                  <Divider className='absolute w-full top-[calc(50%-0.5px)]' />
+                  {/* 已播放波形 */}
+                  {waveSrc && (
+                    <motion.img
+                      className='absolute rtl:-scale-x-100 h-full w-full'
+                      style={{ clipPath }}
+                      alt=''
+                      src={waveSrc}
+                    />
+                  )}
+                  {/* 已播放中线 */}
+                  <motion.div
+                    className='absolute h-px top-[calc(50%-0.5px)] bg-text-disabled'
+                    initial={false}
+                    style={{ width: playedWidth }}
+                  />
+                  {/* 播放位置指示 */}
+                  <motion.div
+                    className='absolute h-full w-px bg-text-disabled'
+                    style={{ insetInlineStart: playedWidth }}
+                  />
+                  {/* 光标指示 */}
+                  {!isNaN(pointerX.get()) && (
+                    <div
+                      className='absolute h-full w-px bg-text-primary'
+                      style={{ insetInlineStart: pointerX.get() - 0.5 + 'px' }}
+                    />
+                  )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* 进度条 */}
+            <MotionSlider
+              className='absolute inset-0'
+              style={
+                showAudioWaveMode === ShowAudioWave.Never
+                  ? undefined
+                  : { cursor: 'default' }
+              }
+              initial={false}
+              animate={{ opacity: showWave ? 0 : 1 }}
+              transition={{
+                duration: config.animationDuration * FADE_DURATION,
+              }}
+              size='small'
+              max={duration}
+              marks={currSong.marks?.map((item) => ({ value: item }))}
+              disabled={media.pending}
+              value={sliderVal}
+              onChange={(_, val) => {
+                draggingRef.current = true;
+                setSliderVal(val as number);
+              }}
+              onChangeCommitted={(_, val) => {
+                draggingRef.current = false;
+                emit(BackendEvent.SetPosition, val as number);
+              }}
+              tabIndex={-1}
+            />
+          </motion.div>
+        </Tip>
+        <div className='w-10 text-end text-sm'>
+          {formatTime(Math.floor(currSong.duration || 0))}
+        </div>
       </div>
-    </div>
+    )
   );
 }

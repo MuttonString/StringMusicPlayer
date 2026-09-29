@@ -37,27 +37,33 @@
     min-width: var(--title-bar-btn-width);
     height: var(--title-bar-height);
 
-    &[disabled] {
-      color: var(--mui-palette-text-disabled, gray);
-
-      &:hover {
-        background-color: inherit !important;
-      }
-    }
-
     &:hover {
       background-color: var(--mui-palette-action-hover, white) !important;
       color: var(--mui-palette-text-primary, black);
     }
+  }
 
-    &:focus-visible {
-      outline: 2px solid var(--mui-palette-Chip-defaultBorder, gray);
-    }
+  // 修复非鼠标无法拖动窗口
+  body:not(.fullscreen) div[data-tauri-decorum-tb] div[data-tauri-drag-region] {
+    -webkit-app-region: drag;
+  }
+
+  header[data-tauri-drag-region] * {
+    cursor: default;
   }
 
   body:has(.MuiBackdrop-root:not([style*='visibility: hidden']))
     div[data-tauri-decorum-tb] {
     z-index: 10000 !important;
+  }
+
+  body:has(.playpage) div[data-tauri-decorum-tb] {
+    z-index: 10000 !important;
+    pointer-events: none;
+
+    button {
+      pointer-events: initial;
+    }
   }
 
   // 打开弹窗时标题栏不透明

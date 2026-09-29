@@ -28,4 +28,8 @@ export const ARCH_MAP = {
   sparc64: 'SPARC64',
 } as const;
 
-export const CAN_SET_SINK_ID = !!HTMLMediaElement.prototype.setSinkId;
+export const SUPPORT_MEDIA_SESSION = 'mediaSession' in navigator;
+
+export const SUPPORT_SET_SINK_ID =
+  // eslint-disable-next-line compat/compat
+  'setSinkId' in window.AudioContext?.prototype;

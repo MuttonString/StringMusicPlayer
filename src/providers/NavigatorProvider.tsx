@@ -12,6 +12,7 @@ import { IS_DESKTOP } from '../constants/os';
 import type { ChildrenProp } from '../types/component';
 import type { NavigatorContext } from '../types/navigator';
 import { PageOperation } from '../types/navigator';
+import { shouldPreventKey } from '../utils/window';
 
 const Context = createContext<NavigatorContext>({
   goBack: () => false,
@@ -71,6 +72,8 @@ export function NavigatorProvider({ children }: ChildrenProp) {
   useEffect(() => {
     const mouseHandler = (e: MouseEvent) => {
       e.preventDefault();
+      if (shouldPreventKey()) return;
+
       switch (e.button) {
         case 3:
           console.info('Mouse back button pressed.');
@@ -89,7 +92,7 @@ export function NavigatorProvider({ children }: ChildrenProp) {
 
   // 拦截移动端后退事件
   useEffect(() => {
-    if (IS_DESKTOP) return;
+    if (IS_DESKTOP || shouldPreventKey()) return;
 
     const unlisten = onBackpressed((e) => {
       console.info(`Action ${e.source} (${e.requestId}) performed.`);

@@ -5,7 +5,7 @@ import {
 } from '@tauri-apps/api/webviewWindow';
 import { IS_APPLE } from '../constants/os';
 import { MAIN_WINDOW } from '../constants/window';
-import { BackendEvent } from '../types/backend';
+import { BackendEvent } from '../types/event';
 
 /**
  * 页面布局是否是从右到左
@@ -46,4 +46,15 @@ export async function raise() {
     return;
   }
   await showMainWindow();
+}
+
+/**
+ * 若打开了Dialog、Drawer、播放页面，需要屏蔽快捷键
+ */
+export function shouldPreventKey() {
+  return (
+    !!document.querySelector(
+      "div:not(.MuiPopover-root):has(.MuiBackdrop-root:not([style*='visibility: hidden']))",
+    ) || !!document.querySelector('.playpage')
+  );
 }

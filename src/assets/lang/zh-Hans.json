@@ -3,12 +3,12 @@
     "stringMusic": "String 音乐",
     "noOptions": "无结果",
     "clear": "清除",
-    "imageFile": "图像文件",
-    "allFile": "所有文件"
+    "imageFiles": "图像文件",
+    "supportedAudioFiles": "支持的媒体文件",
+    "allFiles": "所有文件"
   },
   "msg": {
     "devOptionEnabled": "开发者选项已启用。",
-    "areYouSure": "确定要继续吗？",
     "loadAudioFailed": "加载音频失败。",
     "playAudioFailed": "播放音频失败。"
   },
@@ -32,7 +32,25 @@
     "prevSentence": "上一句",
     "next10Sec": "前进10秒",
     "nextSentence": "下一句",
-    "moreOpt": "更多选项"
+    "playbackMode": "播放模式",
+    "noRepeat": "播完停止",
+    "repeatOne": "单曲循环",
+    "repeatQueue": "队列循环",
+    "shuffle": "随机播放",
+    "playQueue": "播放队列",
+    "favorite": "喜爱",
+    "moreOpt": "更多选项",
+    "info": "歌曲信息",
+    "download": "下载",
+    "share": "分享",
+    "volume": "音量",
+    "settings": "播放设置",
+    "search": "按标题或艺人搜索",
+    "total": "共 {{count}} 项",
+    "selected": "共 {{count}} 项，选中 {{selected}} 项",
+    "removeAll": "移除所有",
+    "removeSelected": "移除选中",
+    "loading": "读取文件中..."
   },
   "titleBar": {
     "navigator": "导航",
@@ -42,11 +60,8 @@
   },
   "footer": {
     "refresh": "刷新",
-    "networkSim": "仿真网络状态",
-    "none": "无仿真",
-    "slow": "慢速",
-    "offline": "脱机",
     "visionSim": "仿真视觉障碍",
+    "none": "无仿真",
     "blurred": "视线模糊",
     "protanopia": "红色盲",
     "deuteranopia": "绿色盲",
@@ -61,9 +76,8 @@
     "artistCollection": "艺人收藏",
     "albumCollection": "专辑收藏",
     "mvCollection": "MV 收藏",
-    "songCollection": "喜爱的歌曲",
-    "playlistCollection": "歌单收藏",
-    "myPlaylist": "我的歌单"
+    "favoriteSongs": "喜爱的歌曲",
+    "playlist": "歌单"
   },
   "drawer": {
     "download": "下载",
@@ -94,6 +108,7 @@
     "mica": "云母",
     "singlePicture": "单张图片",
     "randomPictures": "随机图片",
+    "defaultPicture": "默认图片",
     "opacity": "不透明度",
     "selectPicture": "选择图片",
     "selectFolder": "选择文件夹",
@@ -105,6 +120,23 @@
     "advancedMaterial": "高级材质",
     "sharpStyle": "锐利风格",
     "animationDuration": "动画时长",
+
+    "playback": "播放",
+    "outputDevice": "音频输出设备",
+    "showAudioWave": "在进度条展示音频波形",
+    "never": "从不",
+    "hovering": "悬停时",
+    "always": "常驻",
+    "coverRotation": "媒体栏封面旋转",
+    "coverRotationTip": "窗口过窄时不会显示。",
+    "useCoverAsIcon": "将音乐封面用作窗口图标",
+    "useMusicTitleAsWindowTitle": "将音乐标题用作窗口标题",
+    "volume": "音量",
+    "canOver100": "允许超过100",
+    "canOver100Tip": "超过100的音量可能导致失真。",
+    "speed": "播放速度",
+    "speedMark": "{{value}} 倒放",
+    "preservePitch": "保持音高",
 
     "about": "关于",
     "unknown": "未知",
@@ -124,9 +156,7 @@
     "script": "脚本",
     "scriptWarning": "不要将不受信任的代码粘贴在此。",
     "openAppdata": "打开应用数据目录",
-    "openLog": "打开日志目录",
-    "throwError": "抛出异常",
-    "crash": "制造崩溃"
+    "openLog": "打开日志目录"
   },
   "color": {
     "red": "红色",
@@ -178,5 +208,13 @@
     "minimize": "最小化到托盘",
     "exit": "退出应用",
     "neverAsk": "下次不再询问"
+  },
+  "home": {
+    "welcome": "欢迎",
+    "desc": "使用此应用播放本地或在线音乐。",
+    "openFiles": "打开文件",
+    "openFolders": "打开文件夹",
+    "openUrls": "打开 URL",
+    "openUrlsTip": "每行一个 URL"
   }
 }

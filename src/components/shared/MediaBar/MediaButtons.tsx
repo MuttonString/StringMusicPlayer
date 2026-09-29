@@ -1,14 +1,13 @@
 import IconButton from '@mui/material/IconButton';
 import { emit } from '@tauri-apps/api/event';
 import { useTranslation } from 'react-i18next';
-import { PRIMARY_MODIFIER_KEY } from '../../../constants/keys';
 import { SM_WIDTH } from '../../../constants/window';
+import useShortcutKey from '../../../hooks/useShortcutKey';
 import useWidthQuery from '../../../hooks/useWidthQuery';
 import { useAudio } from '../../../providers/AudioProvider';
 import { useConfig } from '../../../providers/ConfigProvider';
-import { BackendEvent } from '../../../types/backend';
+import { BackendEvent } from '../../../types/event';
 import { KeyCode } from '../../../types/keyCode';
-import { showShortcutKey } from '../../../utils/shortcutKey';
 import { isRTL } from '../../../utils/window';
 import MaterialIcon from '../../ui/MaterialIcon';
 import Tip from '../../ui/Tip';
@@ -24,23 +23,66 @@ export default function MediaButtons() {
   const nextSong = canChangeTrack && media.playQueue[media.nextIdx];
   const canSeekBySentence = config.seekBySentence && media.lyric.length > 1;
 
+  const [seekBackwardKey, seekBackward] = useShortcutKey(
+    () => {
+      if (!media.pending) emit(BackendEvent.SeekBackward);
+    },
+    [KeyCode.Ctrl, isRTL() ? KeyCode.Right : KeyCode.Left],
+    true,
+  );
+
+  const [prevKey, prev] = useShortcutKey(
+    () => {
+      if (prevSong) emit(BackendEvent.Previous);
+    },
+    [KeyCode.Shift, isRTL() ? KeyCode.Right : KeyCode.Left],
+    true,
+  );
+
+  const [toggleKey, toggle] = useShortcutKey(
+    () => {
+      if (!media.pending) emit(BackendEvent.Toggle);
+    },
+    [KeyCode.Ctrl, 'P'],
+    true,
+  );
+
+  const [nextKey, next] = useShortcutKey(
+    () => {
+      if (nextSong) emit(BackendEvent.Next);
+    },
+    [KeyCode.Shift, isRTL() ? KeyCode.Left : KeyCode.Right],
+    true,
+  );
+
+  const [seekForwardKey, seekForward] = useShortcutKey(
+    () => {
+      if (!media.pending) emit(BackendEvent.SeekForward);
+    },
+    [KeyCode.Ctrl, isRTL() ? KeyCode.Left : KeyCode.Right],
+    true,
+  );
+
   return (
-    <div className='flex justify-between w-1/5 min-w-fit border border-divider rounded-full p-1'>
+    <div className='flex justify-between w-1/5 min-w-fit border border-divider rounded-full p-1 mt-auto'>
       {notNarrow && (
         <Tip
           placement='top'
-          title={showShortcutKey(
-            t(canSeekBySentence ? 'media.prevSentence' : 'media.prev10Sec'),
-            KeyCode.Shift,
-            isRTL() ? KeyCode.Right : KeyCode.Left,
-          )}
+          title={
+            t(canSeekBySentence ? 'media.prevSentence' : 'media.prev10Sec') +
+            ' ' +
+            seekBackwardKey
+          }
           disabled={media.pending}
         >
           <IconButton
             size='small'
             className='p-0.75!'
             disabled={media.pending}
-            onClick={() => emit(BackendEvent.SeekForward)}
+            onClick={seekBackward}
+            aria-label={t(
+              canSeekBySentence ? 'media.prevSentence' : 'media.prev10Sec',
+            )}
           >
             <MaterialIcon
               name={
@@ -63,19 +105,15 @@ export default function MediaButtons() {
         title={
           prevSong && (
             <div className='flex flex-col'>
-              <div className='font-bold'>
-                {showShortcutKey(
-                  t('media.prev'),
-                  PRIMARY_MODIFIER_KEY,
-                  isRTL() ? KeyCode.Right : KeyCode.Left,
-                )}
-              </div>
+              <div className='font-bold'>{t('media.prev') + ' ' + prevKey}</div>
               <div className='flex gap-1 items-center'>
                 {prevSong.cover && (
                   <img
                     alt=''
-                    src={prevSong!.cover}
+                    src={prevSong.cover[0]}
                     className='object-cover object-center w-8 h-8 rounded-lg'
+                    onLoad={(e) => (e.currentTarget.style.display = '')}
+                    onError={(e) => (e.currentTarget.style.display = 'none')}
                   />
                 )}
                 <div className='flex flex-col'>
@@ -102,7 +140,14 @@ export default function MediaButtons() {
           size='small'
           className='p-0.75!'
           disabled={!prevSong}
-          onClick={() => emit(BackendEvent.Previous)}
+          onClick={prev}
+          aria-label={
+            prevSong
+              ? t('media.prev') +
+                ': ' +
+                (prevSong.translation || prevSong.title)
+              : undefined
+          }
         >
           <MaterialIcon name={isRTL() ? 'fastForward' : 'fastRewind'} />
         </IconButton>
@@ -111,17 +156,14 @@ export default function MediaButtons() {
       <Tip
         placement='top'
         disabled={media.pending}
-        title={showShortcutKey(
-          t(media.paused ? 'media.play' : 'media.pause'),
-          PRIMARY_MODIFIER_KEY,
-          'P',
-        )}
+        title={t(media.paused ? 'media.play' : 'media.pause') + ' ' + toggleKey}
       >
         <IconButton
           size='small'
           className='p-0! text-3xl!'
           loading={media.pending}
-          onClick={() => emit(BackendEvent.Toggle)}
+          onClick={toggle}
+          aria-label={t(media.paused ? 'media.play' : 'media.pause')}
         >
           <MaterialIcon
             fontSize='inherit'
@@ -136,19 +178,15 @@ export default function MediaButtons() {
         title={
           nextSong && (
             <div className='flex flex-col'>
-              <div className='font-bold'>
-                {showShortcutKey(
-                  t('media.next'),
-                  PRIMARY_MODIFIER_KEY,
-                  isRTL() ? KeyCode.Left : KeyCode.Right,
-                )}
-              </div>
+              <div className='font-bold'>{t('media.next') + ' ' + nextKey}</div>
               <div className='flex gap-1 items-center'>
                 {nextSong.cover && (
                   <img
                     alt=''
-                    src={nextSong!.cover}
+                    src={nextSong.cover[0]}
                     className='object-cover object-center w-8 h-8 rounded-lg'
+                    onLoad={(e) => (e.currentTarget.style.display = '')}
+                    onError={(e) => (e.currentTarget.style.display = 'none')}
                   />
                 )}
                 <div className='flex flex-col'>
@@ -175,7 +213,14 @@ export default function MediaButtons() {
           size='small'
           className='p-0.75!'
           disabled={!nextSong}
-          onClick={() => emit(BackendEvent.Next)}
+          onClick={next}
+          aria-label={
+            nextSong
+              ? t('media.next') +
+                ': ' +
+                (nextSong.translation || nextSong.title)
+              : undefined
+          }
         >
           <MaterialIcon name={isRTL() ? 'fastRewind' : 'fastForward'} />
         </IconButton>
@@ -184,18 +229,21 @@ export default function MediaButtons() {
       {notNarrow && (
         <Tip
           placement='top'
-          title={showShortcutKey(
-            t(canSeekBySentence ? 'media.nextSentence' : 'media.next10Sec'),
-            KeyCode.Shift,
-            isRTL() ? KeyCode.Left : KeyCode.Right,
-          )}
+          title={
+            t(canSeekBySentence ? 'media.nextSentence' : 'media.next10Sec') +
+            ' ' +
+            seekForwardKey
+          }
           disabled={media.pending}
         >
           <IconButton
             size='small'
             className='p-0.75!'
             disabled={media.pending}
-            onClick={() => emit(BackendEvent.SeekBackward)}
+            onClick={seekForward}
+            aria-label={t(
+              canSeekBySentence ? 'media.nextSentence' : 'media.next10Sec',
+            )}
           >
             <MaterialIcon
               name={

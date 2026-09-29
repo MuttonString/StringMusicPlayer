@@ -4,7 +4,6 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import FormHelperText from '@mui/material/FormHelperText';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
-import Slider from '@mui/material/Slider';
 import Switch from '@mui/material/Switch';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
@@ -29,12 +28,8 @@ import { BackgroundType, ColorMode, Colors } from '../../../types/config';
 import FontSelect from '../../ui/FontSelect';
 import LabelControlPair from '../../ui/LabelControlPair';
 import MaterialIcon from '../../ui/MaterialIcon';
+import SliderAlt from '../../ui/SliderAlt';
 import Tip from '../../ui/Tip';
-
-const showPicture = [
-  BackgroundType.SinglePicture,
-  BackgroundType.RandomPictures,
-];
 
 const animationDurationMarks = [
   { value: 0, label: '0' },
@@ -45,6 +40,10 @@ const animationDurationMarks = [
   { value: 5, label: '5x' },
   { value: 6, label: '10x' },
 ] as const;
+
+const opacityMarks = Array.from({ length: 4 }, (_, i) => ({
+  value: (i + 1) * 20,
+}));
 
 export default function WindowAppeance({ refs }: RefsProp) {
   const { t } = useTranslation();
@@ -114,7 +113,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
         defaultPath,
         filters: [
           {
-            name: t('common.imageFile'),
+            name: t('common.imageFiles'),
             extensions: [
               'png',
               'jpg',
@@ -130,7 +129,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
             ],
           },
           ...IMAGE_FILE_FILTER,
-          { name: t('common.allFile'), extensions: ['*'] },
+          { name: t('common.allFiles'), extensions: ['*'] },
         ],
         directory,
       });
@@ -205,7 +204,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
                     variant='outlined'
                     className='min-w-0! p-0! border-2! border-divider! hover:border-text-primary! forced-color-adjust-none'
                     style={{
-                      background: COLOR_VALUE_MAP[colorId].main,
+                      background: COLOR_VALUE_MAP[colorId],
                     }}
                     onClick={() => {
                       if (config.primaryColor === colorId) return;
@@ -276,49 +275,12 @@ export default function WindowAppeance({ refs }: RefsProp) {
             BackgroundType.RandomPictures,
           ].includes(config.backgroundMainWindow.type) && (
             <motion.div
-              className='flex gap-4 me-6 items-center pt-2'
-              layout
               variants={VERTICAL}
-              custom='38px'
+              custom='102.5px'
               initial='hidden'
               animate='visible'
               exit='hidden'
-            >
-              <span>{t('config.opacity')}</span>
-              <Slider
-                value={opacityMain}
-                onChange={(_, val) => {
-                  const style = document.body.style;
-                  style.setProperty(
-                    '--bg-overlay',
-                    `rgb(var(--mui-palette-AppBar-defaultBgChannel) / ${val}%)`,
-                  );
-                  setOpacityMain(val);
-                }}
-                onChangeCommitted={(_, val) =>
-                  updateConfig({
-                    backgroundMainWindow: {
-                      ...config.backgroundMainWindow,
-                      opacity: val,
-                    },
-                  })
-                }
-                valueLabelDisplay='auto'
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        <AnimatePresence initial={false}>
-          {showPicture.includes(config.backgroundMainWindow.type) && (
-            <motion.div
-              variants={VERTICAL}
-              layout
-              custom='68px'
-              initial='hidden'
-              animate='visible'
-              exit='hidden'
-              className='pt-2'
+              className='pt-2!'
             >
               <ButtonGroup fullWidth>
                 <Button
@@ -366,9 +328,34 @@ export default function WindowAppeance({ refs }: RefsProp) {
               </ButtonGroup>
               <Tip title={path} disabled={!path}>
                 <FormHelperText className='truncate'>
-                  {name || t('config.defaultPictureName')}
+                  {name || t('config.defaultPicture')}
                 </FormHelperText>
               </Tip>
+
+              <div className='flex gap-4 me-2 items-center pt-2'>
+                <span>{t('config.opacity')}</span>
+                <SliderAlt
+                  value={opacityMain}
+                  onChange={(_, val) => {
+                    const style = document.body.style;
+                    style.setProperty(
+                      '--bg-overlay',
+                      `rgb(var(--mui-palette-AppBar-defaultBgChannel) / ${val}%)`,
+                    );
+                    setOpacityMain(val as number);
+                  }}
+                  onChangeCommitted={(_, val) =>
+                    updateConfig({
+                      backgroundMainWindow: {
+                        ...config.backgroundMainWindow,
+                        opacity: val as number,
+                      },
+                    })
+                  }
+                  marks={opacityMarks}
+                  valueLabelDisplay='auto'
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
@@ -421,8 +408,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
             config.backgroundMiniWindow.type,
           ) && (
             <motion.div
-              className='flex gap-4 me-6 items-center pt-2'
-              layout
+              className='flex gap-4 me-2 items-center pt-2'
               variants={VERTICAL}
               custom='38px'
               initial='hidden'
@@ -430,19 +416,20 @@ export default function WindowAppeance({ refs }: RefsProp) {
               exit='hidden'
             >
               <span>{t('config.opacity')}</span>
-              <Slider
+              <SliderAlt
                 value={opacityMini}
                 onChange={(_, val) => {
-                  setOpacityMini(val);
+                  setOpacityMini(val as number);
                 }}
                 onChangeCommitted={(_, val) =>
                   updateConfig({
                     backgroundMiniWindow: {
                       ...config.backgroundMiniWindow,
-                      opacity: val,
+                      opacity: val as number,
                     },
                   })
                 }
+                marks={opacityMarks}
                 valueLabelDisplay='auto'
               />
             </motion.div>
@@ -484,8 +471,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
         <AnimatePresence initial={false}>
           {config.advancedMaterial.enabled && (
             <motion.div
-              className='flex gap-4 me-6 items-center pt-2'
-              layout
+              className='flex gap-4 me-2 items-center pt-2'
               variants={VERTICAL}
               custom='38px'
               initial='hidden'
@@ -493,23 +479,24 @@ export default function WindowAppeance({ refs }: RefsProp) {
               exit='hidden'
             >
               <span>{t('config.opacity')}</span>
-              <Slider
+              <SliderAlt
                 value={opacityMaterial}
                 onChange={(_, val) => {
                   document.body.style.setProperty(
                     '--advanced-material-opacity',
-                    String(val / 100),
+                    String((val as number) / 100),
                   );
-                  setOpacityMaterial(val);
+                  setOpacityMaterial(val as number);
                 }}
                 onChangeCommitted={(_, val) =>
                   updateConfig({
                     advancedMaterial: {
                       ...config.advancedMaterial,
-                      opacity: val,
+                      opacity: val as number,
                     },
                   })
                 }
+                marks={opacityMarks}
                 valueLabelDisplay='auto'
               />
             </motion.div>
@@ -534,20 +521,21 @@ export default function WindowAppeance({ refs }: RefsProp) {
         ref={addRef('animationDuration')}
         label={t('config.animationDuration')}
         control={
-          <div className='ms-6 me-6'>
-            <Slider
+          <div className='ms-2 me-2'>
+            <SliderAlt
               step={null}
               marks={animationDurationMarks}
               value={animationDuration}
-              onChange={(_, val) => setAnimationDuration(val)}
+              onChange={(_, val) => setAnimationDuration(val as number)}
               onChangeCommitted={(_, val) =>
                 updateConfig({
                   animationDuration: parseFloat(
-                    animationDurationMarks[val].label,
+                    animationDurationMarks[val as number].label,
                   ),
                 })
               }
               max={6}
+              track={false}
             />
           </div>
         }

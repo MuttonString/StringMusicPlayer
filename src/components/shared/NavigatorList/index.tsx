@@ -1,4 +1,3 @@
-import List from '@mui/material/List';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
@@ -16,7 +15,7 @@ import MotionList from '../../ui/MotionList';
 
 interface Props {
   onButtonClicked?: () => void;
-  noAnimation?: boolean;
+  inDrawer?: boolean;
   className?: string;
 }
 
@@ -25,7 +24,7 @@ const MotionLiBtn = motion.create(ListItemButton);
 export default function NavigatorList({
   onButtonClicked,
   className,
-  noAnimation,
+  inDrawer,
 }: Props) {
   const [config] = useConfig();
   const openDrawer = useConfigDrawer();
@@ -35,12 +34,6 @@ export default function NavigatorList({
   const { t } = useTranslation();
   const { goTo } = useNavigator();
   const [disabled, setDisabled] = useState<string[]>([]);
-
-  const Li = useMemo(() => (noAnimation ? List : MotionList), [noAnimation]);
-  const Btn = useMemo(
-    () => (noAnimation ? ListItemButton : MotionLiBtn),
-    [noAnimation],
-  );
 
   const items = useMemo(
     () => [
@@ -71,23 +64,18 @@ export default function NavigatorList({
       },
       {
         id: 'mvCollection',
-        icon: <MaterialIcon name='videoLibrary' />,
+        icon: <MaterialIcon name='musicVideo' />,
         label: t('page.mvCollection'),
       },
       {
-        id: 'songCollection',
-        icon: <MaterialIcon name='libraryMusic' />,
-        label: t('page.songCollection'),
+        id: 'favoriteSongs',
+        icon: <MaterialIcon name='favorite' />,
+        label: t('page.favoriteSongs'),
       },
       {
-        id: 'playlistCollection',
-        icon: <MaterialIcon name='playlistAddCheckCircle' />,
-        label: t('page.playlistCollection'),
-      },
-      {
-        id: 'myPlaylist',
-        icon: <MaterialIcon name='playlistAddCheck' />,
-        label: t('page.myPlaylist'),
+        id: 'playlist',
+        icon: <MaterialIcon name='viewList' />,
+        label: t('page.playlist'),
       },
     ],
     [t],
@@ -111,18 +99,17 @@ export default function NavigatorList({
   return (
     <div
       className={classNames(
-        'flex flex-col justify-between w-full h-full',
+        'flex flex-col justify-between w-full h-full [body.sharp-corner_&_ul>div]:ps-3! [body.sharp-corner_&_ul>div]:pe-3! [&_ul>div]:ps-2! [&_ul>div]:pe-1! [body:not(.sharp-corner)_&_ul>div]:ms-1! [body:not(.sharp-corner)_&_ul>div]:me-2!',
         className,
       )}
     >
-      <Li className='[body:not(.sharp-corner)_&]:ml-2! [body:not(.sharp-corner)_&]:mr-2!'>
+      <MotionList animate={!inDrawer}>
         {items
           .filter((item) => !disabled.includes(item.id))
           .map((item) => (
-            <Btn
-              className='[body:not(.sharp-corner)_&]:ps-2! [body:not(.sharp-corner)_&]:pe-2!'
-              layout={noAnimation ? undefined : true}
-              variants={noAnimation ? undefined : LIST_ITEM}
+            <MotionLiBtn
+              layout={!inDrawer}
+              variants={inDrawer ? undefined : LIST_ITEM}
               key={item.id}
               selected={selected === item.id}
               onClick={() => {
@@ -133,9 +120,7 @@ export default function NavigatorList({
               }}
             >
               <ListItemIcon
-                className={classNames(
-                  selected === item.id && 'text-secondary!',
-                )}
+                className={classNames(selected === item.id && 'text-primary!')}
               >
                 {item.icon}
               </ListItemIcon>
@@ -143,15 +128,15 @@ export default function NavigatorList({
                 className={classNames(selected === item.id && '**:font-bold!')}
                 primary={item.label}
               />
-            </Btn>
+            </MotionLiBtn>
           ))}
-      </Li>
+      </MotionList>
 
-      <MotionList className='[body:not(.sharp-corner)_&]:ml-2! [body:not(.sharp-corner)_&]:mr-2!'>
+      <MotionList animate={!inDrawer}>
         <MotionLiBtn
-          key={0}
-          className='[body:not(.sharp-corner)_&]:ps-2! [body:not(.sharp-corner)_&]:pe-2!'
-          variants={LIST_ITEM}
+          key='download'
+          layout={!inDrawer}
+          variants={inDrawer ? undefined : LIST_ITEM}
           onClick={() => {
             onButtonClicked?.();
           }}
@@ -163,9 +148,9 @@ export default function NavigatorList({
         </MotionLiBtn>
 
         <MotionLiBtn
-          key={1}
-          className='[body:not(.sharp-corner)_&]:ps-2! [body:not(.sharp-corner)_&]:pe-2!'
-          variants={LIST_ITEM}
+          key='settings'
+          layout={!inDrawer}
+          variants={inDrawer ? undefined : LIST_ITEM}
           onClick={() => {
             openDrawer();
             onButtonClicked?.();

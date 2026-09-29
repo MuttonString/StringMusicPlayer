@@ -1,3 +1,5 @@
+import type { Song } from './audio';
+
 export const enum BackendEvent {
   ConfigChanged = 'config-changed',
   Reopen = 'reopen', // 仅在macOS有效
@@ -18,14 +20,15 @@ export const enum BackendEvent {
   Raise = 'raise',
   Quit = 'quit',
   UpdateQueue = 'update-queue',
-  SetCurrIdx = 'set-curr-idx',
 }
 
 export type WindowLabel = 'main' | 'mini' | 'lyric';
 
-export interface EventPayload<T> {
-  label: WindowLabel;
-  data: T;
+export type EventPayload<T> = [label: WindowLabel, data: T];
+
+export interface UpdateQueuePayload {
+  newQueue?: Song[];
+  newIndex?: number;
 }
 
 export interface FontName {

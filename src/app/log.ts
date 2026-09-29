@@ -16,7 +16,7 @@ function forwardConsole(
     if (typeof args[0] === 'string') {
       if (
         /The resource id [0-9]+ is invalid\./.test(args[0]) ||
-        /\[TAURI\] Couldn't find callback id [0-9]+\./
+        /\[TAURI\] Couldn't find callback id [0-9]+\./.test(args[0])
       ) {
         return;
       }

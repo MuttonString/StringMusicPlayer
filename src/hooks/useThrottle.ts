@@ -1,16 +1,18 @@
 import { useCallback, useEffect, useRef } from 'react';
 
 /**
- * 将传入的函数封装为节流函数。
+ * 将传入的函数封装为节流函数，通常函数需要useCallback包裹
  */
 export default function useThrottle(
   fn: (...args: any[]) => any,
   delay: number,
 ) {
   const fnRef = useRef(fn);
-  const timerRef = useRef<number | null>(null);
+  const timerRef = useRef(0);
 
-  useEffect(() => (fnRef.current = fn), [fn]);
+  useEffect(() => {
+    fnRef.current = fn;
+  }, [fn]);
 
   return useCallback(
     (...args: any[]) => {
@@ -18,7 +20,7 @@ export default function useThrottle(
       fnRef.current(...args);
 
       timerRef.current = setTimeout(() => {
-        timerRef.current = null;
+        timerRef.current = 0;
       }, delay);
     },
     [delay],

@@ -19,19 +19,11 @@ const commonProps = {
 
 export default function PlainControlButtons() {
   const [isMax, setIsMax] = useState(false);
-  const [maxDisabled, setMaxDisabled] = useState(false);
 
   useEffect(() => {
-    const handleMaximize = () => {
-      MAIN_WINDOW.isMaximized().then(setIsMax);
-
-      MAIN_WINDOW.isFullscreen().then((val) => {
-        setMaxDisabled(val);
-        MAIN_WINDOW.setResizable(!val);
-      });
-    };
-
-    const unlisten = MAIN_WINDOW.onResized(handleMaximize);
+    const unlisten = MAIN_WINDOW.onResized(() =>
+      MAIN_WINDOW.isMaximized().then(setIsMax),
+    );
 
     return () => {
       unlisten.then((fn) => fn?.());
@@ -58,7 +50,6 @@ export default function PlainControlButtons() {
       <button
         id='decorum-tb-maximize'
         onClick={() => MAIN_WINDOW.toggleMaximize()}
-        disabled={maxDisabled}
         {...commonProps}
       >
         {isMax ? icons[2] : icons[1]}

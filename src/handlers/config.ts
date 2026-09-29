@@ -1,22 +1,37 @@
-import { convertFileSrc } from '@tauri-apps/api/core';
+import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import { join } from '@tauri-apps/api/path';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { Effect } from '@tauri-apps/api/window';
 import { exists, readDir, stat } from '@tauri-apps/plugin-fs';
 import bg from '../assets/bg.webp';
+import { IS_APPLE } from '../constants/os';
 import { WINDOW_LABEL } from '../constants/window';
 import type { AppConfig } from '../types/config';
 import { BackgroundType, ColorMode } from '../types/config';
-import { listenDevKey } from '../utils/shortcutKey';
 import { setLang } from './lang';
 
 const appWindow = getCurrentWebviewWindow();
+
+const listenDevKey = (e: KeyboardEvent) => {
+  const primaryKey = IS_APPLE ? e.metaKey : e.ctrlKey;
+  if (
+    (primaryKey && e.shiftKey && e.key.toLowerCase() === 'i') ||
+    e.key === 'F12'
+  ) {
+    invoke('open_devtools');
+  } else if ((primaryKey && e.key.toLowerCase() === 'r') || e.key === 'F5') {
+    location.reload();
+  }
+};
 
 /**
  * 映射为应用某设置项的对应函数
  */
 export const applyConfigFnMap: {
-  [key in keyof AppConfig]?: (value: AppConfig[key]) => void;
+  [key in keyof AppConfig]?: (
+    value: AppConfig[key],
+    prev: AppConfig[key],
+  ) => void;
 } = {
   language(value) {
     setTimeout(async () => {
@@ -41,7 +56,10 @@ export const applyConfigFnMap: {
         break;
     }
   },
-  async backgroundMainWindow({ type, opacity, path }) {
+  async backgroundMainWindow(
+    { type, opacity, path },
+    { type: prevType, path: prevPath },
+  ) {
     if (WINDOW_LABEL !== 'main') return;
     const style = document.body.style;
 
@@ -86,6 +104,11 @@ export const applyConfigFnMap: {
           break;
         }
 
+        if (type === prevType && path === prevPath) {
+          setBgColor();
+          break;
+        }
+
         try {
           if (!((await exists(path)) && (await stat(path)).isDirectory)) {
             style.setProperty('--bg-image', `url(${bg})`);
@@ -103,7 +126,7 @@ export const applyConfigFnMap: {
           }
           const img = files[Math.floor(Math.random() * files.length)];
           const fullPath = await join(path, img);
-          style.setProperty('--bg-image', `url(${convertFileSrc(fullPath)}`);
+          style.setProperty('--bg-image', `url(${convertFileSrc(fullPath)})`);
         } catch (err) {
           console.error('Failed to get random picture from folder: ' + err);
           style.setProperty('--bg-image', `url(${bg})`);
@@ -114,6 +137,11 @@ export const applyConfigFnMap: {
       default:
         if (!path) {
           style.setProperty('--bg-image', `url(${bg})`);
+          setBgColor();
+          break;
+        }
+
+        if (type === prevType && path === prevPath) {
           setBgColor();
           break;
         }
@@ -151,8 +179,8 @@ export const applyConfigFnMap: {
     }
   },
   sharpStyle(val) {
-    if (val) document.body.classList.add('sharp-corner');
-    else document.body.classList.remove('sharp-corner');
+    if (val) document.body.classList.add('sharp-style');
+    else document.body.classList.remove('sharp-style');
   },
   animationDuration(val) {
     document.body.style.setProperty('--duration', String(val));
@@ -162,7 +190,10 @@ export const applyConfigFnMap: {
   },
 
   enableDevOptions(value) {
-    if (value) window.addEventListener('keydown', listenDevKey, true);
-    else window.removeEventListener('keydown', listenDevKey, true);
+    if (value) {
+      window.addEventListener('keydown', listenDevKey, true);
+    } else {
+      window.removeEventListener('keydown', listenDevKey, true);
+    }
   },
 } as const;

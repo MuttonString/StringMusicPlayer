@@ -49,7 +49,15 @@ export async function setLang(langBaseDirPath: string) {
     document.documentElement.lang = info.lang;
 
     Object.keys(i18n.services.resourceStore.data).forEach((lng) => {
-      if ([BuiltInLang.zh, BuiltInLang.en, info.lang].includes(lng)) return;
+      if (
+        [
+          BuiltInLang.zhHans,
+          BuiltInLang.zhHant,
+          BuiltInLang.en,
+          info.lang,
+        ].includes(lng)
+      )
+        return;
       i18n.removeResourceBundle(lng, 'translation');
     });
   } catch (err) {

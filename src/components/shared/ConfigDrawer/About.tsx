@@ -164,7 +164,7 @@ export default function About({ refs }: RefsProp) {
             >
               <ListItemIcon sx={{ marginRight: '8px' }}>
                 <Avatar src='https://avatars.githubusercontent.com/u/97750941'>
-                  <GitHubIcon />
+                  <GitHubIcon color='action' />
                 </Avatar>
               </ListItemIcon>
               <ListItemText
@@ -190,12 +190,7 @@ export default function About({ refs }: RefsProp) {
             onClose={() => setLibOpen(false)}
           >
             {OPEN_SOURCE_LIBRARY.map((item, idx) => (
-              <Button
-                size='small'
-                color='inherit'
-                key={idx}
-                onClick={() => openUrl(item[1])}
-              >
+              <Button size='small' key={idx} onClick={() => openUrl(item[1])}>
                 {item[0]}
               </Button>
             ))}

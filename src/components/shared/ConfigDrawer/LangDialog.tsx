@@ -1,6 +1,5 @@
 import Divider from '@mui/material/Divider';
 import IconButton from '@mui/material/IconButton';
-import Input from '@mui/material/Input';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
@@ -14,9 +13,10 @@ import {
   watchImmediate,
 } from '@tauri-apps/plugin-fs';
 import { motion } from 'framer-motion';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DIALOG_LEVAING_MS, LIST_ITEM } from '../../../constants/animation';
+import { DIALOG_LEVAING_MS } from '../../../constants/animation';
+import { useScrollKeyPressed } from '../../../hooks/useScrollKeyPressed';
 import { useConfig } from '../../../providers/ConfigProvider';
 import type { DialogBaseProps } from '../../../types/component';
 import { BuiltInLang } from '../../../types/lang';
@@ -25,8 +25,8 @@ import delay from '../../../utils/delay';
 import { getLangs, isBuiltInLang } from '../../../utils/lang';
 import { isRTL } from '../../../utils/window';
 import DialogTemplate from '../../ui/DialogTemplate';
+import InputWithClear from '../../ui/InputWithClear';
 import MaterialIcon from '../../ui/MaterialIcon';
-import MotionList from '../../ui/MotionList';
 import Tip from '../../ui/Tip';
 
 interface ListItem extends ResInfo {
@@ -41,7 +41,6 @@ export default function LangDialog({ open, onClose }: DialogBaseProps) {
   const [config, updateConfig] = useConfig();
   const [list, setList] = useState<ListItem[]>([]);
   const [search, setSearch] = useState('');
-  const [filtered, setFiltered] = useState(list);
   const [selected, setSelected] = useState('');
   const [detail, setDetail] = useState<ListItem | null>(null);
   const { t } = useTranslation();
@@ -89,11 +88,19 @@ export default function LangDialog({ open, onClose }: DialogBaseProps) {
         const entries = await readDir(langFolder);
         const localList: ListItem[] = [
           {
-            lang: BuiltInLang.zh,
+            lang: BuiltInLang.zhHans,
             name: '简体中文',
             author: 'Mutton String',
             version: 1,
-            folder: BuiltInLang.zh,
+            folder: BuiltInLang.zhHans,
+            local: true,
+          },
+          {
+            lang: BuiltInLang.zhHant,
+            name: '繁體中文',
+            author: 'Mutton String',
+            version: 1,
+            folder: BuiltInLang.zhHant,
             local: true,
           },
           {
@@ -165,21 +172,23 @@ export default function LangDialog({ open, onClose }: DialogBaseProps) {
   }, [config.language, getLocalList, open]);
 
   // 过滤搜索项
-  useEffect(() => {
-    setFiltered(() => {
-      const s = search.trim();
-      return s
-        ? list.filter((item) =>
-            item.name
-              .toLocaleLowerCase(langs)
-              .includes(s.toLocaleLowerCase(langs)),
-          )
-        : list;
-    });
+  const filtered = useMemo(() => {
+    const s = search.trim();
+    return s
+      ? list.filter((item) =>
+          item.name
+            .toLocaleLowerCase(langs)
+            .includes(s.toLocaleLowerCase(langs)),
+        )
+      : list;
   }, [langs, list, search]);
+
+  const scrollRef = useRef<HTMLUListElement>(null);
+  const onKeyDown = useScrollKeyPressed(scrollRef.current);
 
   return (
     <DialogTemplate
+      onKeyDown={onKeyDown}
       maxWidth='xs'
       title={t('langDialog.title')}
       open={open}
@@ -196,14 +205,23 @@ export default function LangDialog({ open, onClose }: DialogBaseProps) {
     >
       <div className='flex gap-4 h-80'>
         <div className='flex flex-col gap-2 flex-1'>
-          <Input
+          <InputWithClear
+            aria-label={t('langDialog.search')}
             placeholder={t('langDialog.search')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onClear={() => setSearch('')}
           />
-          <MotionList className='overflow-auto max-h-full' dense disablePadding>
+          <List
+            ref={scrollRef}
+            className='overflow-auto h-full'
+            dense
+            disablePadding
+          >
             <MotionLiBtn
-              variants={LIST_ITEM}
+              key=''
+              initial={false}
+              layout
               selected={selected === ''}
               onClick={() => {
                 setSelected('');
@@ -216,8 +234,9 @@ export default function LangDialog({ open, onClose }: DialogBaseProps) {
             </MotionLiBtn>
             {filtered.map((item) => (
               <MotionLiBtn
-                variants={LIST_ITEM}
                 key={item.folder + item.local}
+                initial={false}
+                layout
                 selected={item.folder === selected}
                 onClick={() => {
                   if (item.local) setSelected(item.folder);
@@ -266,7 +285,7 @@ export default function LangDialog({ open, onClose }: DialogBaseProps) {
                 </ListItem>
               </MotionLiBtn>
             ))}
-          </MotionList>
+          </List>
         </div>
 
         <Divider orientation='vertical' variant='fullWidth' />

@@ -1,15 +1,20 @@
 import { invoke } from '@tauri-apps/api/core';
 import { exit } from '@tauri-apps/plugin-process';
+import { useEffect } from 'react';
 
 interface Props {
-  error?: string | null;
+  error?: string;
   errorInfo?: string | null;
 }
 
 const btnClassName =
-  'text-base w-40 h-10 border border-white text-white bg-black mt-4 ms-4 cursor-pointer rounded-lg hover:text-black active:text-black hover:bg-white active:bg-white focus-visible:outline-4 focus-visible:outline-[gray]';
+  'text-base w-40 h-10 border border-white text-white bg-black mt-4 ms-4 cursor-pointer rounded-lg hover:text-black active:text-black hover:bg-white active:bg-white focus-visible:outline-4!';
 
 export default function ErrorBoundaryBase({ error, errorInfo }: Props) {
+  useEffect(() => {
+    console.error(error + (errorInfo ? '\n' + errorInfo : ''));
+  }, [error, errorInfo]);
+
   return (
     <div
       lang='en'
@@ -21,7 +26,7 @@ export default function ErrorBoundaryBase({ error, errorInfo }: Props) {
       </div>
       {error && <div className='text-base mb-4'>{error}</div>}
       {errorInfo && (
-        <div className='text-sm mb-4 font-mono! whitespace-pre-wrap overflow-auto max-h-[calc(100%-20rem)]'>
+        <div className='text-sm mb-4 font-mono! whitespace-pre-wrap overflow-auto max-h-[calc(100%-20rem)] focus-visible:outline-4!'>
           {errorInfo}
         </div>
       )}

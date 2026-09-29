@@ -1,6 +1,30 @@
 import { decompressSync, deflateSync, strFromU8, strToU8 } from 'fflate';
 
 /**
+ * 将秒数格式化为mm:ss
+ */
+export function formatTime(seconds: number) {
+  if (isNaN(seconds)) {
+    return '0:00';
+  }
+  if (seconds === Infinity) {
+    return '∞';
+  }
+
+  seconds = Math.floor(seconds);
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+/**
+ * 从URL中获取文件名
+ */
+export function getBasename(src: string) {
+  return decodeURIComponent(new URL(src).pathname)
+    .split(/[\/\\]/)
+    .pop()!;
+}
+
+/**
  * 获取长度20的只由数字和英文字母组成的随机key
  */
 export function getRandomKey() {
@@ -41,15 +65,37 @@ export function decompress(base64: string) {
 }
 
 /**
- * 将图片src转换为正方形的PNG格式的ArrayBuffer
+ * 获取音频时长
  */
-export function imgSrcToBuffer(src: string, size: number) {
-  const img = document.createElement('img');
+export function getAudioDuration(src: string) {
+  const audio = new Audio();
+  audio.preload = 'metadata';
+
+  return new Promise<number>((resolve, reject) => {
+    audio.onloadedmetadata = (e) => {
+      const target = e.currentTarget as HTMLAudioElement;
+      const duration = target.duration;
+      target.onloadedmetadata = null;
+      target.removeAttribute('src');
+      target.load();
+      resolve(duration);
+    };
+
+    audio.onerror = reject;
+    audio.src = src;
+  });
+}
+
+/**
+ * 将图片src转换为正方形的PNG格式的Blob
+ */
+export function imgSrcToBlob(src: string, size: number) {
+  const img = new Image();
   img.crossOrigin = 'anonymous';
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
-  return new Promise<ArrayBuffer>((resolve, reject) => {
+  return new Promise<Blob>((resolve, reject) => {
     img.onload = () => {
       if (!ctx) return reject();
 
@@ -68,9 +114,7 @@ export function imgSrcToBuffer(src: string, size: number) {
       );
       canvas.toBlob(async (blob) => {
         if (!blob) return reject();
-
-        const arrayBuffer = await blob.arrayBuffer();
-        resolve(arrayBuffer);
+        resolve(blob);
       }, 'image/png');
     };
 

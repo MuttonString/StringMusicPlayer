@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-export interface AudioContext {
+export interface AudioProviderContext {
   currIdx: number; // 无正在播放的歌曲时为-1
   prevIdx: number;
   nextIdx: number;
@@ -9,19 +9,16 @@ export interface AudioContext {
   pending: boolean;
   currentTime: number;
   lyric: LyricSentence[];
-  currArrayBuffer?: ArrayBuffer;
-  play: () => void;
-  pause: () => void;
-  prev: () => void;
-  next: () => void;
-  seekBackward: () => void;
-  seekForward: () => void;
-  updateQueue: (newQueue: Song[]) => void;
   setLyric: (lyric: LyricSentence[]) => void;
-  setCurrIdx: (idx: number) => void;
+  currBlobUrl: string;
 }
 
-export enum TaskbarButtons {
+export interface WebAudio {
+  context: AudioContext;
+  gain: GainNode;
+}
+
+export const enum TaskbarButtons {
   Prev = 1001,
   Toggle = 1002,
   Next = 1003,
@@ -34,6 +31,26 @@ export interface DetailMetadata {
   label: string;
 }
 
+export interface SongDetail {
+  year?: number;
+  track?: { no: number; of: number };
+  title?: string; // 元数据不存在title时，不回滚至文件名
+  artists?: string[];
+  album?: string;
+  albumartists?: string[];
+  container?: string;
+  codec?: string;
+  codecProfile?: string;
+  duration?: string; // 用audio元素取值
+  bitrate?: number;
+  sampleRate?: number;
+  bitsPerSample?: number;
+  lossless?: boolean;
+  numberOfChannels?: number;
+}
+
+export type Cover = [original: string, thumbnail: string];
+
 export interface Song {
   id?: string; // 仅在线歌曲
   api?: string; // 仅在线歌曲
@@ -42,9 +59,12 @@ export interface Song {
   translation?: string;
   artists?: DetailMetadata[];
   album?: DetailMetadata;
-  cover?: string;
+  cover?: Cover; // 缩略图边长88
   duration?: number;
   marks?: number[];
+  favorite?: boolean;
+  favoriteCount?: number;
+  metadataLoaded: boolean;
 }
 
 export interface LyricSentence {

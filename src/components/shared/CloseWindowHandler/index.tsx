@@ -8,8 +8,8 @@ import { useTranslation } from 'react-i18next';
 import { IS_APPLE, IS_DESKTOP } from '../../../constants/os';
 import { WINDOW_LABEL } from '../../../constants/window';
 import { useConfig } from '../../../providers/ConfigProvider';
-import { BackendEvent } from '../../../types/backend';
 import { CloseWindowAction } from '../../../types/config';
+import { BackendEvent } from '../../../types/event';
 import { destroyAll } from '../../../utils/window';
 import DialogTemplate from '../../ui/DialogTemplate';
 

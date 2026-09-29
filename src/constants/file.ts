@@ -12,7 +12,7 @@ export const IMAGE_FILE_FILTER = [
 ];
 
 export const SUPPORTED_AUDIO_FORMAT = (() => {
-  const audio = document.createElement('audio');
+  const audio = new Audio();
   return [
     'audio/mp3',
     'audio/flac',
@@ -41,39 +41,8 @@ export const SUPPORTED_AUDIO_FILTER_MAP = (() => {
   return SUPPORTED_AUDIO_FORMAT.map((item) => filterMap[item]);
 })();
 
-export const SILENCE_AUDIO: string = await (() => {
-  const writeString = (
-    view: DataView<ArrayBuffer>,
-    offset: number,
-    str: string,
-  ) => {
-    for (let i = 0; i < str.length; i++) {
-      view.setUint8(offset + i, str.charCodeAt(i));
-    }
-  };
-  const buffer = new ArrayBuffer(44 + 80000);
-  const view = new DataView(buffer);
-  writeString(view, 0, 'RIFF');
-  view.setUint32(4, 36 + 80000, true);
-  writeString(view, 8, 'WAVE');
-  writeString(view, 12, 'fmt ');
-  view.setUint32(16, 16, true);
-  view.setUint16(20, 1, true);
-  view.setUint16(22, 1, true);
-  view.setUint32(24, 8000, true);
-  view.setUint32(28, 8000, true);
-  view.setUint16(32, 1, true);
-  view.setUint16(34, 8, true);
-  writeString(view, 36, 'data');
-  view.setUint32(40, 80000, true);
-  const dataOffset = 44;
-  for (let i = 0; i < 80000; i++) {
-    view.setUint8(dataOffset + i, 128);
-  }
-  const blob = new Blob([buffer], { type: 'audio/wav' });
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.readAsDataURL(blob);
-  });
-})();
+export const SUPPORTED_AUDIO_EXT_LIST = (() =>
+  SUPPORTED_AUDIO_FILTER_MAP.reduce((acc, curr) => {
+    acc.push(...curr.extensions);
+    return acc;
+  }, [] as string[]))();

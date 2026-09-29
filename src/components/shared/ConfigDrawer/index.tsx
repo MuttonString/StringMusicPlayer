@@ -17,12 +17,14 @@ import {
   DEV_CONFIG_GROUP_ID_LIST,
   DEV_CONFIG_ID_LIST,
 } from '../../../constants/config';
+import { useScrollKeyPressed } from '../../../hooks/useScrollKeyPressed';
 import { useConfig } from '../../../providers/ConfigProvider';
 import type { OpenConfigDrawerFn } from '../../../types/component';
 import { getLangs } from '../../../utils/lang';
 import About from './About';
 import Common from './Common';
 import DevOptions from './DevOptions';
+import Playback from './Playback';
 import WindowAppeance from './WindowAppeearance';
 
 interface Props {
@@ -34,13 +36,21 @@ export default function ConfigDrawer({ ref }: Props) {
   const [searchInput, setSearchInput] = useState('');
   const refs = useRef<Record<string, HTMLElement | null>>({});
   const { t } = useTranslation();
+  const [config] = useConfig();
 
-  const handleJump = useCallback((str: string, smooth = false) => {
-    const el = refs.current[str];
-    if (el) {
-      el.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant' });
-    }
-  }, []);
+  const hasAnimation = !!config.animationDuration;
+
+  const handleJump = useCallback(
+    (str: string, smooth = false) => {
+      const el = refs.current[str];
+      if (el) {
+        el.scrollIntoView({
+          behavior: smooth && hasAnimation ? 'smooth' : 'instant',
+        });
+      }
+    },
+    [hasAnimation],
+  );
 
   useImperativeHandle(
     ref,
@@ -51,7 +61,6 @@ export default function ConfigDrawer({ ref }: Props) {
       },
   );
 
-  const [config] = useConfig();
   const devEnabled = config.enableDevOptions;
 
   const defaultOptions: { id: string; label: string }[] = useMemo(
@@ -75,8 +84,12 @@ export default function ConfigDrawer({ ref }: Props) {
     [defaultOptions, devEnabled, t],
   );
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const onKeyDown = useScrollKeyPressed(scrollRef.current);
+
   return (
     <SwipeableDrawer
+      onKeyDown={onKeyDown}
       disableSwipeToOpen
       open={open}
       onOpen={() => setOpen(true)}
@@ -125,9 +138,13 @@ export default function ConfigDrawer({ ref }: Props) {
         </div>
         <Divider />
 
-        <div className='overflow-auto flex-1 p-3 flex flex-col gap-8 text-nowrap [&_label]:text-wrap [&>div]:flex [&>div]:flex-col [&>div]:gap-2 [&>div]:items-start [&>div>div]:bg-action-hover [&>div>div]:hover:bg-action-focus [&>div>div]:rounded-lg [&>div>div]:p-2 [&>div>div]:w-full'>
+        <div
+          ref={scrollRef}
+          className='overflow-y-auto flex-1 p-3 flex flex-col gap-8 text-nowrap [&_label]:text-wrap [&>div]:flex [&>div]:flex-col [&>div]:gap-2 [&>div]:items-start [&>div>div]:bg-action-hover [&>div>div]:hover:bg-action-focus [&>div>div]:transition-colors [&>div>div]:duration-[calc(var(--duration)*150ms)] [&>div>div]:rounded-lg [&>div>div]:p-2 [&>div>div]:w-full [&_.MuiFormHelperText-root]:[text-wrap:auto]'
+        >
           <Common refs={refs} />
           <WindowAppeance refs={refs} />
+          <Playback refs={refs} />
           <About refs={refs} />
           {devEnabled && <DevOptions refs={refs} />}
         </div>

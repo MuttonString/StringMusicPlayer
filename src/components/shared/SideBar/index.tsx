@@ -17,9 +17,9 @@ export default function SideBar() {
           initial='hidden'
           whileInView='visible'
           exit='hidden'
-          className='overflow-x-clip overflow-y-auto whitespace-nowrap -mt-2 -mb-2'
+          className='overflow-x-clip overflow-y-auto whitespace-nowrap'
         >
-          <NavigatorList />
+          <NavigatorList className='[&_ul]:first:pt-0! [&_ul]:last:pb-0!' />
         </motion.aside>
       )}
     </AnimatePresence>

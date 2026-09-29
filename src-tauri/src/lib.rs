@@ -20,6 +20,7 @@ mod titlebar;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_autostart::Builder::new().build())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
@@ -78,17 +79,19 @@ pub fn run() {
 
     builder
         .plugin(
-            tauri_plugin_log::Builder::default()
+            tauri_plugin_log::Builder::new()
                 .targets([
                     Target::new(TargetKind::Stdout),
                     Target::new(TargetKind::Webview),
                     Target::new(TargetKind::LogDir { file_name: None }),
                 ])
                 .level(log::LevelFilter::Info)
+                .max_file_size(100_000)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepSome(10))
                 .format(|out, message, record| {
                     out.finish(format_args!(
                         "[{}][{}] {}",
-                        chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
+                        chrono::Local::now().format("%y/%m/%d %H:%M:%S%.3f"),
                         record.level(),
                         message
                     ))
@@ -155,7 +158,6 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             webview_ver::webview_ver,
             dev_op::open_devtools,
-            dev_op::crash,
             font::get_system_fonts,
             open::opened_urls,
             media_control::set_metadata,

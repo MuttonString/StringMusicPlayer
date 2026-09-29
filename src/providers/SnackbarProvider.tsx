@@ -26,14 +26,12 @@ export function SnackbarProvider({ children }: ChildrenProp) {
   const [open, setOpen] = useState(false);
   const [message, setMessage] = useState<ReactNode>();
   const [type, setType] = useState<SnackbarType>(null);
-  const timerRef = useRef<number | null>(null);
+  const timerRef = useRef<number>(0);
 
   const showSnackbar = useCallback<OpenSnackbarFn>(
     (message, type = null, autoHideDuration = 5000) => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
+      clearTimeout(timerRef.current);
+      timerRef.current = 0;
 
       setMessage(
         message.split('\n').map((row, idx) => (
@@ -59,7 +57,7 @@ export function SnackbarProvider({ children }: ChildrenProp) {
       {children}
       {WINDOW_LABEL === 'main' && (
         <Snackbar
-          className='max-w-75'
+          className='max-w-[calc(100%-5rem)]'
           open={open}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
           action={

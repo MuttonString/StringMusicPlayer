@@ -1,37 +1,31 @@
 import { invoke } from '@tauri-apps/api/core';
-import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { type, version } from '@tauri-apps/plugin-os';
 import ReactDOM from 'react-dom/client';
 import PlainControlButtons from '../components/shared/PlainControlButtons';
 import { IS_DESKTOP } from '../constants/os';
+import { MAIN_WINDOW } from '../constants/window';
 
 if (IS_DESKTOP) {
   document.documentElement.classList.add('desktop');
-  if (!document.querySelector('vody > div[data-tauri-decorum-tb]')) {
+
+  // 在decorum组件异常消失时，重新创建
+  if (!document.querySelector('body > div[data-tauri-decorum-tb]')) {
     invoke('create_titlebar');
+    location.reload();
   }
 }
 
-const appWindow = getCurrentWebviewWindow();
-
 // 窗口失去焦点时的样式变化
-appWindow.isFocused().then((val) => {
+MAIN_WINDOW.isFocused().then((val) => {
   if (!val) document.body.classList.add('lose-focus');
 });
 
-appWindow.onFocusChanged((e) => {
+MAIN_WINDOW.onFocusChanged((e) => {
   if (e.payload) {
     document.body.classList.remove('lose-focus');
   } else {
     document.body.classList.add('lose-focus');
   }
-});
-
-// 全屏时的样式变化
-appWindow.onResized(async () => {
-  const fullscreen = await appWindow.isFullscreen();
-  if (fullscreen) document.body.classList.add('fullscreeen');
-  else document.body.classList.remove('fullscreeen');
 });
 
 if (['windows', 'linux'].includes(type())) {
@@ -55,18 +49,11 @@ if (['windows', 'linux'].includes(type())) {
       });
 
       // 修复最大化窗口的还原按钮图标bug
-      appWindow.isMaximized().then((val) => {
+      MAIN_WINDOW.isMaximized().then((val) => {
         if (val) {
           container.querySelector('#decorum-tb-maximize')!.innerHTML = '\ue923';
         }
       });
-
-      appWindow.onResized(() =>
-        appWindow.isFullscreen().then((val) => {
-          maxBtn.disabled = val;
-          appWindow.setResizable(!val);
-        }),
-      );
     } else {
       observer.disconnect();
 

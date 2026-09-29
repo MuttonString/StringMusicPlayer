@@ -1,16 +1,43 @@
-import { IS_APPLE } from '../constants/os';
+import { KeyCode } from '../types/keyCode';
 
-// 禁用DevTools快捷键
+// 禁用部分原生快捷键
 window.addEventListener(
   'keydown',
   (e) => {
-    if (e.primaryKey && e.shiftKey && e.code === 'KeyI') {
+    // DevTools
+    if (
+      ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'i') ||
+      e.key === 'F12'
+    ) {
       e.preventDefault();
       e.stopPropagation();
       return;
     }
 
-    if (e.key === 'F12') {
+    // 刷新
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'r') {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    // 页面后退
+    if (
+      (e.metaKey && (e.key === '[' || e.key === KeyCode.Left)) ||
+      (e.altKey && e.key === KeyCode.Left) ||
+      (e.ctrlKey && e.key === KeyCode.Left)
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+
+    // 页面前进
+    if (
+      (e.metaKey && (e.key === ']' || e.key === KeyCode.Right)) ||
+      (e.altKey && e.key === KeyCode.Right) ||
+      (e.ctrlKey && e.key === KeyCode.Right)
+    ) {
       e.preventDefault();
       e.stopPropagation();
       return;
@@ -18,9 +45,3 @@ window.addEventListener(
   },
   true,
 );
-
-Object.defineProperty(KeyboardEvent.prototype, 'primaryKey', {
-  get(this) {
-    return IS_APPLE ? this.metaKey : this.ctrlKey;
-  },
-});

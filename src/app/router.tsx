@@ -4,13 +4,12 @@ import AlbumCollection from '../pages/AlbumCollection';
 import ArtistCollection from '../pages/ArtistCollection';
 import Error from '../pages/Error';
 import RouterErrorBoundary from '../pages/ErrorBoundary/router';
+import FavoriteSongs from '../pages/FavoriteSongs';
 import Home from '../pages/Home';
 import MVCollection from '../pages/MVCollection';
-import MyPlaylist from '../pages/MyPlaylist';
-import PlaylistCollection from '../pages/PlaylistCollection';
+import Playlist from '../pages/Playlist';
 import Recent from '../pages/Recent';
 import Recommendation from '../pages/Recommendaion';
-import SongCollection from '../pages/SongCollection';
 
 const router = createBrowserRouter([
   {
@@ -47,16 +46,12 @@ const router = createBrowserRouter([
         element: <MVCollection />,
       },
       {
-        path: 'songCollection',
-        element: <SongCollection />,
+        path: 'playlist',
+        element: <Playlist />,
       },
       {
-        path: 'playlistCollection',
-        element: <PlaylistCollection />,
-      },
-      {
-        path: 'myPlaylist',
-        element: <MyPlaylist />,
+        path: 'favoriteSongs',
+        element: <FavoriteSongs />,
       },
       {
         path: '*',

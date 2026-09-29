@@ -1,4 +1,4 @@
-import { CAN_SET_SINK_ID, IS_APPLE, IS_DESKTOP } from './os';
+import { IS_APPLE, IS_DESKTOP, SUPPORT_SET_SINK_ID } from './os';
 
 export const CONFIG_GROUP_ID_LIST = [
   'common',
@@ -48,29 +48,27 @@ export const CONFIG_ID_LIST = [
   'jpRomaji',
   'yahooAppId',
   'furigana',
-  'katakanaRuby',
   'kanjiFix',
   'removeParenthesisPron',
   'hangulPron',
   'cyrillicPron',
   'otherPron',
 
-  CAN_SET_SINK_ID && 'audioDevice',
+  SUPPORT_SET_SINK_ID && 'outputDevice',
   'showAudioWave',
-  'coverRotate',
+  'coverRotation',
+  IS_DESKTOP && 'useCoverAsIcon',
+  IS_DESKTOP && 'useMusicTitleAsWindowTitle',
   'seekBySentence',
   'replaceWholeList',
   'replayDelay',
   'volume',
-  'mute',
   'dynamicVolume',
-  'canVolumnOver100',
   'speed',
   'audioFade',
   'enableEqualizer',
   'equalizerSliderMoveTogether',
   'equalizer',
-  'detune',
   'playbackMode',
 
   'recommendation',
@@ -78,6 +76,7 @@ export const CONFIG_ID_LIST = [
   'searchHistory',
   'savePlaybackStatus',
   'keepDownloadHistory',
+  'readClipboard',
 ].filter(Boolean) as string[];
 
 export const DEV_CONFIG_ID_LIST = [
@@ -87,6 +86,4 @@ export const DEV_CONFIG_ID_LIST = [
   'script',
   IS_DESKTOP && 'openAppdata',
   IS_DESKTOP && 'openLog',
-  'throwError',
-  'crash',
 ].filter(Boolean) as string[];

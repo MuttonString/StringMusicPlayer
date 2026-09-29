@@ -58,7 +58,7 @@ export const enum LyricAlign {
 
 export const enum ShowAudioWave {
   Never,
-  OnHover,
+  Hovering,
   Always,
 }
 
@@ -136,7 +136,6 @@ export interface AppConfig {
   jpRomaji: RomajiMode;
   yahooAppId: string;
   furigana: boolean;
-  katakanaRuby: boolean;
   kanjiFix: boolean;
   removeParenthesisPron: boolean;
   hangulPron: boolean;
@@ -144,19 +143,17 @@ export interface AppConfig {
   otherPron: boolean;
 
   // 音频播放
-  audioDevice: string; // 为空时跟随系统 仅setSinkId()可用时有效
+  outputDevice: string; // 为空时跟随系统 仅setSinkId()可用时有效
   showAudioWave: ShowAudioWave;
-  coverRotate: boolean;
-  useCoverAsIcon: boolean;
-  useMusicTitleAsWindowTitle: boolean;
+  coverRotation: boolean;
+  useCoverAsIcon: boolean; // 仅桌面端
+  useMusicTitleAsWindowTitle: boolean; // 仅桌面端
   seekBySentence: boolean;
   replaceWholeList: boolean;
   replayDelay: number;
-  volume: number;
-  mute: boolean;
+  volume: [number, canOver100: boolean];
   dynamicVolume: boolean;
-  canVolumnOver100: boolean;
-  speed: number;
+  speed: [playbackRate: number, preservesPitch: boolean];
   audioFade: boolean;
   enableEqualizer: boolean;
   equalizerSliderMoveTogether: boolean;
@@ -171,8 +168,9 @@ export interface AppConfig {
     number,
     number,
   ];
-  detune: number;
   playbackMode: PlaybackMode;
+
+  // 下载
 
   // 隐私
   recommendation: boolean;
@@ -180,6 +178,7 @@ export interface AppConfig {
   searchHistory: boolean;
   savePlaybackStatus: boolean;
   keepDownloadHistory: boolean;
+  readClipboard: boolean;
 
   // 快捷操作
 

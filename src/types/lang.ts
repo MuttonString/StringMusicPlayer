@@ -1,4 +1,5 @@
 export const enum BuiltInLang {
-  zh = '://zh-Hans',
+  zhHans = '://zh-Hans',
+  zhHant = '://zh-Hant',
   en = '://en',
 }

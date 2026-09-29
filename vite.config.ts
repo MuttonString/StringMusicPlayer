@@ -42,20 +42,5 @@ export default defineConfig({
       // 3. tell Vite to ignore watching `src-tauri`
       ignored: ['**/src-tauri/**'],
     },
-    proxy: {
-      '/_': {
-        changeOrigin: true,
-        target: 'https://127.0.0.1/',
-        secure: false,
-        rewrite: (path) => path.replace(/^\/_https?:\/\/[^/]+/, ''),
-        configure: (proxy, options) => {
-          proxy.on('proxyReq', (_, req) => {
-            // @ts-expect-error
-            const target = req.originalUrl.match(/^\/_(https?:\/\/[^/]+)/)[1];
-            options.target = target;
-          });
-        },
-      },
-    },
   },
 });

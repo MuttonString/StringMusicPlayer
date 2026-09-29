@@ -1,13 +1,17 @@
+import 'react';
+import type { AppConfig } from './config';
+
 declare global {
-  interface KeyboardEvent {
-    /**
-     * 主修饰键是否被按下，Windows/Linux为Ctrl，Mac为Cmd
-     */
-    primaryKey: readonly boolean;
+  interface Window {
+    [key: `__TAURI_${string}`]: any;
+    __CONFIG__: AppConfig;
+  }
+
+  interface AudioContext {
+    setSinkId: HTMLAudioElement['setSinkId'];
   }
 }
 
-import 'react';
 declare module 'react' {
   export interface CSSProperties {
     [key: `--${string}`]: string | number;
