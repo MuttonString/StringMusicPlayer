@@ -26,8 +26,10 @@ import {
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_AUDIO_EXT_LIST } from '../constants/file';
 import {
+  IS_APPLE,
   IS_DESKTOP,
   SUPPORT_MEDIA_SESSION,
+  SUPPORT_PLAYBACK_RATE,
   SUPPORT_SET_SINK_ID,
 } from '../constants/os';
 import {
@@ -70,12 +72,6 @@ if (WINDOW_LABEL === 'main') {
     );
   } else {
     console.warn('Do not support mediaSession.');
-    invoke('detach_media_control')
-      .catch(() => {})
-      .finally(() => {
-        console.info('Initialize media control.');
-        invoke('init_media_control');
-      });
   }
 }
 
@@ -166,10 +162,10 @@ export function AudioProvider({ children }: ChildrenProp) {
 
   // 设置速度
   useEffect(() => {
-    if (!audioRef.current) return;
+    if (!audioRef.current || !SUPPORT_PLAYBACK_RATE) return;
     audioRef.current.playbackRate = config.speed[0];
-    audioRef.current.preservesPitch = config.speed[1];
     fakeAudioRef.current!.playbackRate = config.speed[0];
+    audioRef.current.preservesPitch = config.speed[1];
     fakeAudioRef.current!.preservesPitch = config.speed[1];
   }, [config.speed]);
 
@@ -371,9 +367,6 @@ export function AudioProvider({ children }: ChildrenProp) {
     if (currIdx < 0) {
       setPrevIdx(-1);
       setNextIdx(-1);
-      setPaused(true);
-      audioRef.current?.pause();
-      fakeAudioRef.current?.pause();
       return;
     }
 
@@ -644,11 +637,21 @@ export function AudioProvider({ children }: ChildrenProp) {
 
   const getMetadata = useCallback(
     (srcs: string[]) => {
-      // 在子线程获取本地歌曲元数据
-      const localSrcs = srcs.filter((item) =>
-        /^https?:\/\/asset\.localhost/i.test(item),
-      );
+      const localSrcs: string[] = [];
+      const onlineSrcs: string[] = [];
 
+      srcs.forEach((item) => {
+        if (
+          /^https?:\/\/asset\.localhost/i.test(item) ||
+          /^asset:\/\/localhost/i.test(item)
+        ) {
+          localSrcs.push(item);
+        } else {
+          onlineSrcs.push(item);
+        }
+      });
+
+      // 在子线程获取本地歌曲元数据
       const worker = new Worker(
         new URL('../handlers/readMetadata', import.meta.url),
         { type: 'module' },
@@ -662,9 +665,6 @@ export function AudioProvider({ children }: ChildrenProp) {
 
       // 从在线歌曲url获取元数据
       setTimeout(async () => {
-        const onlineSrcs = srcs.filter(
-          (item) => !/^https?:\/\/asset\.localhost/i.test(item),
-        );
         let part: [string, IAudioMetadata | null][] = [];
         for (const src of onlineSrcs) {
           try {
@@ -796,23 +796,12 @@ export function AudioProvider({ children }: ChildrenProp) {
             artwork: currSong.cover ? [{ src: currSong.cover[0] }] : undefined,
           })
         : null;
-    } else if (currSong) {
-      console.info('Attach media control.');
-      invoke('set_metadata', {
-        metadata: {
-          title: currSong.title,
-          artist: currSong.artists?.map((item) => item.label).join('; ') || '',
-          album: currSong.album?.label || '',
-          cover: currSong.cover || '',
-          duration: currSong.duration || 0,
-        },
-      }).then(() => invoke('attach_media_control'));
-    } else {
-      console.info('Detach media control.');
-      invoke('detach_media_control');
     }
 
-    if (!currSong) setPaused(true);
+    if (currSong) return;
+    setPaused(true);
+    audioRef.current?.pause();
+    fakeAudioRef.current?.pause();
   }, [currSong]);
 
   // 同步react状态与系统控件
@@ -840,11 +829,6 @@ export function AudioProvider({ children }: ChildrenProp) {
   }, [canChangeTrack]);
 
   useEffect(() => {
-    if (WINDOW_LABEL !== 'main' || SUPPORT_MEDIA_SESSION) return;
-    invoke('set_playback', { paused, position: currentTime });
-  }, [currentTime, paused]);
-
-  useEffect(() => {
     if (!isWindows || WINDOW_LABEL !== 'main') return;
     invoke('update_buttons', {
       updates: [
@@ -870,7 +854,7 @@ export function AudioProvider({ children }: ChildrenProp) {
 
   // 更改窗口标题
   useEffect(() => {
-    if (!IS_DESKTOP) return;
+    if (!IS_DESKTOP || IS_APPLE) return;
     if (config.useMusicTitleAsWindowTitle && currSong?.title) {
       MAIN_WINDOW.setTitle(`${currSong.title} - ${t('common.stringMusic')}`);
     } else {
@@ -880,7 +864,7 @@ export function AudioProvider({ children }: ChildrenProp) {
 
   // 更改窗口图标
   useEffect(() => {
-    if (!IS_DESKTOP) return;
+    if (!IS_DESKTOP || IS_APPLE) return;
     if (config.useCoverAsIcon && currSong?.cover) {
       imgSrcToBlob(currSong.cover[0], isWindows ? 64 : 256)
         .then(async (val) => {
@@ -996,10 +980,14 @@ export function AudioProvider({ children }: ChildrenProp) {
               emit(BackendEvent.IsLoading, false);
               const audio = e.currentTarget;
               const src = audio.dataset.src;
+
               // src变化时速度会被重置，故在此设置速度
-              audio.playbackRate = config.speed[0];
-              audio.preservesPitch = config.speed[1];
+              if (SUPPORT_PLAYBACK_RATE) {
+                audio.playbackRate = config.speed[0];
+                audio.preservesPitch = config.speed[1];
+              }
               if (!src || src !== currSong?.src) return;
+
               console.info(`Audio "${getBasename(src)}" can be played.`);
               if (paused) {
                 audio.pause();
@@ -1048,10 +1036,6 @@ export function AudioProvider({ children }: ChildrenProp) {
             },
             onLoadedMetadata: (e) => {
               const target = e.currentTarget;
-              if (target.playbackRate < 0 && target.duration < Infinity) {
-                target.currentTime = target.duration;
-              }
-
               setPlayQueue((oldVal) => {
                 const idx = oldVal.findIndex(
                   (val) => val.src === target.dataset.src,

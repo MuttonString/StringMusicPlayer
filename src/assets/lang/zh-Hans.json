@@ -135,7 +135,6 @@
     "canOver100": "允许超过100",
     "canOver100Tip": "超过100的音量可能导致失真。",
     "speed": "播放速度",
-    "speedMark": "{{value}} 倒放",
     "preservePitch": "保持音高",
 
     "about": "关于",

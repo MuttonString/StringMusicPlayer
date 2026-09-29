@@ -13,15 +13,13 @@ export const MAIN_WINDOW = (await WebviewWindow.getByLabel('main'))!;
 
 export const WINDOW_LABEL = getCurrentWebviewWindow().label as WindowLabel;
 
-const styles = getComputedStyle(document.body);
-
 export const MD_WIDTH = '50rem';
 
 export const SM_WIDTH = '30rem';
 
-export const SIDE_BAR_WIDTH = styles.getPropertyValue('--side-bar-width');
+export const SIDE_BAR_WIDTH = '15rem';
 
-export const MEDIA_BAR_HEIGHT = styles.getPropertyValue('--media-bar-height');
+export const MEDIA_BAR_HEIGHT = '5rem';
 
 const ver = version();
 const os = type();

@@ -62,7 +62,8 @@ export default function TitleBar() {
 
   useEffect(() => {
     if (!IS_APPLE) return;
-    const unlisten = MAIN_WINDOW.onResized(async () => {
+
+    const isFullscreen = async () => {
       const fullscreen = await MAIN_WINDOW.isFullscreen();
       setIsFullscreen(fullscreen);
       if (fullscreen) {
@@ -70,7 +71,10 @@ export default function TitleBar() {
       } else {
         document.body.classList.remove('fullscreen');
       }
-    });
+    };
+
+    isFullscreen();
+    const unlisten = MAIN_WINDOW.onResized(isFullscreen);
 
     return () => {
       unlisten.then((fn) => fn());

@@ -70,8 +70,6 @@ export default function OperationButtons({ show }: Props) {
     openConfig('playback');
   }, [KeyCode.Ctrl, KeyCode.Shift, 'G']);
 
-  const [volume, setVolume] = useState(config.volume[0]);
-
   const [volumeUpKey] = useShortcutKey(
     () => {
       const max = config.volume[1] ? 400 : 100;
@@ -235,9 +233,9 @@ export default function OperationButtons({ show }: Props) {
                   <ListItemIcon>
                     <MaterialIcon
                       name={
-                        volume > 50
+                        config.volume[0] > 50
                           ? 'volumeUp'
-                          : volume > 0
+                          : config.volume[0] > 0
                             ? 'volumeDown'
                             : 'volumeMute'
                       }
@@ -254,8 +252,7 @@ export default function OperationButtons({ show }: Props) {
                   </Typography>
                 </ListItem>
                 <ListItem className='pt-0! pb-0!'>
-                  <VolumeSlider onChange={(val) => setVolume(val)} />
-                  <div className='text-end w-12'>{volume}</div>
+                  <VolumeSlider />
                 </ListItem>
               </Menu>
 

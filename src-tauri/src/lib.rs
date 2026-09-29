@@ -7,7 +7,6 @@ use tauri_plugin_log::{Target, TargetKind, log};
 
 mod dev_op;
 mod font;
-mod media_control;
 mod open;
 mod webview_ver;
 
@@ -160,11 +159,6 @@ pub fn run() {
             dev_op::open_devtools,
             font::get_system_fonts,
             open::opened_urls,
-            media_control::set_metadata,
-            media_control::set_playback,
-            media_control::init_media_control,
-            media_control::attach_media_control,
-            media_control::detach_media_control,
             #[cfg(desktop)]
             titlebar::create_titlebar,
             #[cfg(target_os = "windows")]
@@ -175,37 +169,41 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("Error while running tauri application.")
         .run(|_app, event| {
-            // 由于 https://github.com/tauri-apps/tauri/issues/9198 ，统一采用Exit而非ExitRequested
-            if let RunEvent::Exit { .. } = event {
-                log::info!("App exited.");
-            }
+            match event {
+                // 由于 https://github.com/tauri-apps/tauri/issues/9198 ，统一采用Exit而非ExitRequested
+                RunEvent::Exit { .. } => {
+                    log::info!("App exited.");
+                }
 
-            #[cfg(any(target_os = "macos", target_os = "ios", target_os = "android"))]
-            if let RunEvent::Opened { urls } = event {
-                let url_strs: Vec<String> = urls
-                    .into_iter()
-                    .map(|url: tauri::Url| {
-                        if url.scheme() == "file" {
-                            match url.to_file_path() {
-                                Ok(path) => path.to_string_lossy().into_owned(),
-                                Err(_) => url.as_str().to_string(),
+                #[cfg(any(target_os = "macos", target_os = "ios", target_os = "android"))]
+                RunEvent::Opened { urls } => {
+                    let url_strs: Vec<String> = urls
+                        .into_iter()
+                        .map(|url: tauri::Url| {
+                            if url.scheme() == "file" {
+                                match url.to_file_path() {
+                                    Ok(path) => path.to_string_lossy().into_owned(),
+                                    Err(_) => url.as_str().to_string(),
+                                }
+                            } else {
+                                url.as_str().to_string()
                             }
-                        } else {
-                            url.as_str().to_string()
-                        }
-                    })
-                    .collect();
-                _app.state::<open::OpenedUrls>()
-                    .0
-                    .lock()
-                    .unwrap()
-                    .extend(url_strs);
-                let _ = _app.emit("open-uri", url_strs);
-            }
+                        })
+                        .collect();
+                    _app.state::<open::OpenedUrls>()
+                        .0
+                        .lock()
+                        .unwrap()
+                        .extend(url_strs.clone());
+                    let _ = _app.emit("open-uri", url_strs);
+                }
 
-            #[cfg(target_os = "macos")]
-            if let RunEvent::Reopen { .. } = event {
-                let _ = _app.emit("reopen", ());
+                #[cfg(target_os = "macos")]
+                RunEvent::Reopen { .. } => {
+                    let _ = _app.emit("reopen", ());
+                }
+
+                _ => {}
             }
         });
 }

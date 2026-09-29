@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import {
   IS_APPLE,
   IS_DESKTOP,
+  SUPPORT_PLAYBACK_RATE,
   SUPPORT_SET_SINK_ID,
 } from '../../../constants/os';
 import { useConfig } from '../../../providers/ConfigProvider';
@@ -23,10 +24,14 @@ import SliderAlt from '../../ui/SliderAlt';
 import VolumeSlider from '../../ui/VolumeSlider';
 
 const speedMarks = [
-  ...((IS_APPLE &&
-    Array.from({ length: 8 }, (_, i) => ({ value: i / 4 - 2 }))) ||
-    []),
-  ...Array.from({ length: 8 }, (_, i) => ({ value: (i + 1) / 4 })),
+  { value: 0.25 },
+  { value: 0.5, label: '0.5x' },
+  { value: 0.75 },
+  { value: 1, label: '1x' },
+  { value: 1.25 },
+  { value: 1.5, label: '1.5x' },
+  { value: 1.75 },
+  { value: 2, label: '2x' },
 ];
 
 export default function Playback({ refs }: RefsProp) {
@@ -170,7 +175,7 @@ export default function Playback({ refs }: RefsProp) {
         <FormHelperText>{t('config.coverRotationTip')}</FormHelperText>
       </div>
 
-      {IS_DESKTOP && (
+      {IS_DESKTOP && !IS_APPLE && (
         <>
           <div>
             <FormControlLabel
@@ -232,51 +237,50 @@ export default function Playback({ refs }: RefsProp) {
         <FormHelperText>{t('config.canOver100Tip')}</FormHelperText>
       </div>
 
-      <div>
-        <LabelControlPair
-          ref={addRef('speed')}
-          label={t('config.speed')}
-          control={
-            <div className='ms-2 me-2'>
-              <SliderAlt
-                value={rate}
+      {SUPPORT_PLAYBACK_RATE && (
+        <div>
+          <LabelControlPair
+            ref={addRef('speed')}
+            label={t('config.speed')}
+            control={
+              <div className='ms-2 me-2'>
+                <SliderAlt
+                  value={rate}
+                  onChange={(_, val) => {
+                    setRate(val as number);
+                  }}
+                  onChangeCommitted={(_, val) =>
+                    updateConfig({
+                      speed: [val as number, config.speed[1]],
+                    })
+                  }
+                  step={null}
+                  min={0.25}
+                  max={2}
+                  marks={speedMarks}
+                  valueLabelDisplay='auto'
+                  valueLabelFormat={(val) => val + 'x'}
+                  track={false}
+                />
+              </div>
+            }
+          />
+
+          <FormControlLabel
+            label={t('config.preservePitch')}
+            control={
+              <Switch
+                checked={config.speed[1]}
                 onChange={(_, val) => {
-                  setRate(val as number);
-                }}
-                onChangeCommitted={(_, val) =>
                   updateConfig({
-                    speed: [val as number, config.speed[1]],
-                  })
-                }
-                step={null}
-                min={IS_APPLE ? -2 : 0.25}
-                max={2}
-                marks={speedMarks}
-                valueLabelDisplay='auto'
-                track={false}
-                valueLabelFormat={(val) =>
-                  val >= 0
-                    ? val + 'x'
-                    : t('config.speedMark', { value: val + 'x' })
-                }
+                    speed: [config.speed[0], val],
+                  });
+                }}
               />
-            </div>
-          }
-        />
-        <FormControlLabel
-          label={t('config.preservePitch')}
-          control={
-            <Switch
-              checked={config.speed[1]}
-              onChange={(_, val) => {
-                updateConfig({
-                  speed: [config.speed[0], val],
-                });
-              }}
-            />
-          }
-        />
-      </div>
+            }
+          />
+        </div>
+      )}
     </div>
   );
 }

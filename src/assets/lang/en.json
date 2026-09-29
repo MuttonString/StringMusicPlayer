@@ -135,7 +135,6 @@
     "canOver100": "Over 100 allowed",
     "canOver100Tip": "Volume over 100 may cause distortion.",
     "speed": "Playback speed",
-    "speedMark": "{{value}} reversed",
     "preservePitch": "Preserve pitch",
 
     "about": "About",

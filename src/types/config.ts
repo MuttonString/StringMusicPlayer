@@ -146,14 +146,14 @@ export interface AppConfig {
   outputDevice: string; // 为空时跟随系统 仅setSinkId()可用时有效
   showAudioWave: ShowAudioWave;
   coverRotation: boolean;
-  useCoverAsIcon: boolean; // 仅桌面端
-  useMusicTitleAsWindowTitle: boolean; // 仅桌面端
+  useCoverAsIcon: boolean; // 仅在Windows和Linux有效
+  useMusicTitleAsWindowTitle: boolean; // 仅在Windows和Linux有效
   seekBySentence: boolean;
   replaceWholeList: boolean;
   replayDelay: number;
   volume: [number, canOver100: boolean];
   dynamicVolume: boolean;
-  speed: [playbackRate: number, preservesPitch: boolean];
+  speed: [playbackRate: number, preservesPitch: boolean]; // 仅在Windows和Android有效
   audioFade: boolean;
   enableEqualizer: boolean;
   equalizerSliderMoveTogether: boolean;

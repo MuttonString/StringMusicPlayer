@@ -24,11 +24,7 @@ const playTestSound = async (volume: number) => {
   src.start();
 };
 
-interface Props {
-  onChange?: (volume: number) => void;
-}
-
-export default function VolumeSlider({ onChange }: Props) {
+export default function VolumeSlider() {
   const [config, updateConfig] = useConfig();
   const { paused, pending } = useAudio();
   const [volume, setVolume] = useState(config.volume[0]);
@@ -50,23 +46,14 @@ export default function VolumeSlider({ onChange }: Props) {
     setVolume(vol);
   }, [vol]);
 
-  const onChangeRef = useRef(onChange);
-
-  useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
-
-  useEffect(() => {
-    onChangeRef.current?.(volume);
-  }, [volume]);
-
   return (
     <SliderAlt
       value={volume}
       max={config.volume[1] ? 400 : 100}
-      marks={
-        config.volume[1] && [100, 200, 300].map((item) => ({ value: item }))
-      }
+      marks={(config.volume[1]
+        ? [0, 50, 100, 200, 300, 400]
+        : [0, 25, 50, 75, 100]
+      ).map((item) => ({ value: item, label: item }))}
       onChange={(_, val) => {
         draggingRef.current = true;
         setVolume(val as number);
