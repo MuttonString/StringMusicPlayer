@@ -7,6 +7,7 @@ use tauri_plugin_log::{Target, TargetKind, log};
 
 mod dev_op;
 mod font;
+mod media_control;
 mod open;
 mod webview_ver;
 
@@ -134,6 +135,8 @@ pub fn run() {
             #[cfg(desktop)]
             titlebar::create_titlebar(main_window.clone());
 
+            media_control::init_media_control(main_window.app_handle().clone());
+
             // 捕获panic
             panic::set_hook(Box::new(move |panic_info| {
                 let loc = panic_info.location().unwrap();
@@ -159,6 +162,11 @@ pub fn run() {
             dev_op::open_devtools,
             font::get_system_fonts,
             open::opened_urls,
+            media_control::set_metadata,
+            media_control::set_playback,
+            media_control::init_media_control,
+            media_control::attach_media_control,
+            media_control::detach_media_control,
             #[cfg(desktop)]
             titlebar::create_titlebar,
             #[cfg(target_os = "windows")]

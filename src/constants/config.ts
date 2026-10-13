@@ -65,7 +65,7 @@ export const CONFIG_ID_LIST = [
   'volume',
   'dynamicVolume',
   'speed',
-  'audioFade',
+  'detune',
   'enableEqualizer',
   'equalizerSliderMoveTogether',
   'equalizer',

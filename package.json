@@ -56,6 +56,7 @@
     "stylis": "^4.4.0",
     "tailwindcss": "^4.3.3",
     "tauri-plugin-backpressed": "^0.1.3",
+    "tone": "^15.1.22",
     "waveform-generator-web": "^0.1.0",
     "waviz": "^1.0.0"
   },

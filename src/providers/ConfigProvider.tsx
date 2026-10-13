@@ -57,20 +57,14 @@ const initVal: AppConfig = {
 
   colorMode: ColorMode.FollowSystem,
   primaryColor: Colors.Cyan,
-  backgroundMainWindow: {
-    type: BackgroundType.SinglePicture,
-    opacity: 80,
-    path: '',
-  },
-  backgroundMiniWindow: {
-    type: BackgroundType.SinglePicture,
-    opacity: 80,
-  },
+  backgroundMainWindowType: BackgroundType.SinglePicture,
+  backgroundMainWindowOpacity: 80,
+  backgroundMainWindowPath: '',
+  backgroundMiniWindowType: BackgroundType.SinglePicture,
+  backgroundMiniWindowOpacity: 80,
   globalFont: '',
-  advancedMaterial: {
-    enabled: true,
-    opacity: 60,
-  },
+  advancedMaterialEnabled: true,
+  advancedMaterialOpacity: 60,
   sharpStyle: false,
   animationDuration: 1,
 
@@ -101,10 +95,11 @@ const initVal: AppConfig = {
   seekBySentence: true,
   replaceWholeList: false,
   replayDelay: 2,
-  volume: [100, false],
+  volumeValue: 100,
+  volumeOver100Allowed: false,
   dynamicVolume: false,
-  speed: [1, true],
-  audioFade: false,
+  speed: 1,
+  detune: 0,
   enableEqualizer: false,
   equalizerSliderMoveTogether: true,
   equalizer: [0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -124,14 +119,11 @@ const initVal: AppConfig = {
 };
 
 const reducer = (prev: AppConfig, action: Partial<AppConfig>) => {
-  Object.entries(action).forEach(([key, value]) => {
-    applyConfigFnMap[key as keyof AppConfig]?.(
-      value as never,
-      prev[key as never],
-    );
-  });
   const newVal = { ...prev, ...action };
   window.__CONFIG__ = newVal;
+  Object.entries(action).forEach(([key, value]) => {
+    applyConfigFnMap[key as keyof AppConfig]?.(value as never);
+  });
   return newVal;
 };
 

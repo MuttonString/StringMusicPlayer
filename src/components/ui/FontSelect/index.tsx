@@ -4,11 +4,11 @@ import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
 import TextField from '@mui/material/TextField';
 import { invoke } from '@tauri-apps/api/core';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../../app/i18n';
 import type { FontName } from '../../../types/event';
 import { KeyCode } from '../../../types/keyCode';
-import { getLangs } from '../../../utils/lang';
 
 interface Props {
   value: string;
@@ -20,7 +20,7 @@ export default function FontSelect({ value, onChange, onBlur }: Props) {
   const [fonts, setFonts] = useState<FontName[]>();
   const [open, setOpen] = useState(false);
   const { t } = useTranslation();
-  const langs = useMemo(getLangs, [t]);
+  const langs = i18n.languages;
 
   return (
     <>

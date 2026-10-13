@@ -27,30 +27,28 @@ const playTestSound = async (volume: number) => {
 export default function VolumeSlider() {
   const [config, updateConfig] = useConfig();
   const { paused, pending } = useAudio();
-  const [volume, setVolume] = useState(config.volume[0]);
+  const [volume, setVolume] = useState(config.volumeValue);
   const draggingRef = useRef(false);
 
-  const canOver100 = config.volume[1];
   const changeVolume = useCallback(
     (val: number) => {
-      updateConfig({ volume: [val, canOver100] });
+      updateConfig({ volumeValue: val });
     },
-    [canOver100, updateConfig],
+    [updateConfig],
   );
 
   const changeVolumeThrottle = useThrottle(changeVolume, 250);
 
-  const vol = config.volume[0];
   useEffect(() => {
     if (draggingRef.current) return;
-    setVolume(vol);
-  }, [vol]);
+    setVolume(config.volumeValue);
+  }, [config.volumeValue]);
 
   return (
     <SliderAlt
       value={volume}
-      max={config.volume[1] ? 400 : 100}
-      marks={(config.volume[1]
+      max={config.volumeOver100Allowed ? 400 : 100}
+      marks={(config.volumeOver100Allowed
         ? [0, 50, 100, 200, 300, 400]
         : [0, 25, 50, 75, 100]
       ).map((item) => ({ value: item, label: item }))}

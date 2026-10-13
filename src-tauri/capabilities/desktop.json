@@ -2,5 +2,9 @@
   "identifier": "desktop-capability",
   "platforms": ["macOS", "windows", "linux"],
   "windows": ["main", "mini", "lyric"],
-  "permissions": ["window-state:default", "autostart:default"]
+  "permissions": [
+    "window-state:default",
+    "autostart:default",
+    "decorum:allow-show-snap-overlay"
+  ]
 }

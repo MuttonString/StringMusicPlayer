@@ -28,11 +28,6 @@ export const ARCH_MAP = {
   sparc64: 'SPARC64',
 } as const;
 
-export const SUPPORT_MEDIA_SESSION = 'mediaSession' in navigator;
-
 export const SUPPORT_SET_SINK_ID =
   // eslint-disable-next-line compat/compat
   'setSinkId' in window.AudioContext?.prototype;
-
-// 由于WebKit Bug 240405，使用该引擎的操作系统不提供倍速功能
-export const SUPPORT_PLAYBACK_RATE = ['windows', 'android'].includes(os);

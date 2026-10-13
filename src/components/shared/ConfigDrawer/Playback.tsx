@@ -13,7 +13,6 @@ import { useTranslation } from 'react-i18next';
 import {
   IS_APPLE,
   IS_DESKTOP,
-  SUPPORT_PLAYBACK_RATE,
   SUPPORT_SET_SINK_ID,
 } from '../../../constants/os';
 import { useConfig } from '../../../providers/ConfigProvider';
@@ -32,6 +31,26 @@ const speedMarks = [
   { value: 1.5, label: '1.5x' },
   { value: 1.75 },
   { value: 2, label: '2x' },
+];
+
+const detuneMarks = [
+  {
+    value: -1200,
+    label: (
+      <span className='tracking-tighter'>
+        8<i>vb</i>
+      </span>
+    ),
+  },
+  { value: 0, label: '♮' },
+  {
+    value: 1200,
+    label: (
+      <span className='tracking-tighter'>
+        8<i>va</i>
+      </span>
+    ),
+  },
 ];
 
 export default function Playback({ refs }: RefsProp) {
@@ -56,7 +75,7 @@ export default function Playback({ refs }: RefsProp) {
       );
 
       // 若没有可用的设备，申请权限，再次尝试获取
-      if (!mediaDevices.length) {
+      if (mediaDevices.length === 0) {
         try {
           await navigator.mediaDevices.getUserMedia({ audio: true });
           mediaDevices = (
@@ -97,15 +116,112 @@ export default function Playback({ refs }: RefsProp) {
     [config.outputDevice, defaultDevice, devices],
   );
 
-  const playbackRate = config.speed[0];
-  const [rate, setRate] = useState(playbackRate);
-  useEffect(() => setRate(playbackRate), [playbackRate]);
+  const [speed, setSpeed] = useState(config.speed);
+  useEffect(() => setSpeed(config.speed), [config.speed]);
+
+  const [detune, setDetune] = useState(config.detune);
+  useEffect(() => setDetune(config.detune), [config.detune]);
 
   return (
     <div>
       <Typography variant='h6' color='primary' ref={addRef('playback')}>
         {t('config.playback')}
       </Typography>
+
+      <div>
+        <LabelControlPair
+          ref={addRef('volume')}
+          label={t('config.volume')}
+          control={
+            <div className='ms-2 me-2'>
+              <VolumeSlider />
+            </div>
+          }
+        />
+
+        <FormControlLabel
+          className='pt-2'
+          label={t('config.over100Allowed')}
+          control={
+            <Switch
+              checked={config.volumeOver100Allowed}
+              onChange={(_, val) => {
+                updateConfig({
+                  volumeValue: Math.min(val ? 400 : 100, config.volumeValue),
+                  volumeOver100Allowed: val,
+                });
+              }}
+            />
+          }
+        />
+        <FormHelperText>{t('config.over100AllowedTip')}</FormHelperText>
+      </div>
+
+      <div>
+        <LabelControlPair
+          ref={addRef('speed')}
+          label={t('config.speed')}
+          control={
+            <div className='ms-2 me-2'>
+              <SliderAlt
+                value={speed}
+                onChange={(_, val) => {
+                  setSpeed(val as number);
+                }}
+                onChangeCommitted={(_, val) =>
+                  updateConfig({
+                    speed: val as number,
+                  })
+                }
+                step={null}
+                min={0.25}
+                max={2}
+                marks={speedMarks}
+                valueLabelDisplay='auto'
+                valueLabelFormat={(val) => val + 'x'}
+                track={false}
+              />
+            </div>
+          }
+        />
+        <FormHelperText>{t('config.speedTip')}</FormHelperText>
+      </div>
+
+      <div>
+        <LabelControlPair
+          ref={addRef('detune')}
+          label={t('config.detune')}
+          control={
+            <div className='ms-2 me-2'>
+              <SliderAlt
+                value={detune}
+                onChange={(_, val) => {
+                  setDetune(val as number);
+                }}
+                onChangeCommitted={(_, val) =>
+                  updateConfig({
+                    detune: val as number,
+                  })
+                }
+                step={100}
+                min={-1200}
+                max={1200}
+                marks={detuneMarks}
+                valueLabelDisplay='auto'
+                valueLabelFormat={(val) => {
+                  if (val === 0) return 0;
+                  if (val === 100) return '♯';
+                  if (val === -100) return '♭';
+                  if (val > 0) return val / 100 + '♯';
+                  if (val < 0) return val / -100 + '♭';
+                }}
+                track={false}
+              />
+            </div>
+          }
+        />
+        <FormHelperText>{t('config.detuneTip')}</FormHelperText>
+      </div>
 
       {SUPPORT_SET_SINK_ID && (
         <LabelControlPair
@@ -207,79 +323,6 @@ export default function Playback({ refs }: RefsProp) {
             />
           </div>
         </>
-      )}
-
-      <div>
-        <LabelControlPair
-          ref={addRef('volume')}
-          label={t('config.volume')}
-          control={
-            <div className='ms-2 me-2'>
-              <VolumeSlider />
-            </div>
-          }
-        />
-
-        <FormControlLabel
-          className='pt-2'
-          label={t('config.canOver100')}
-          control={
-            <Switch
-              checked={config.volume[1]}
-              onChange={(_, val) => {
-                updateConfig({
-                  volume: [Math.min(val ? 400 : 100, config.volume[0]), val],
-                });
-              }}
-            />
-          }
-        />
-        <FormHelperText>{t('config.canOver100Tip')}</FormHelperText>
-      </div>
-
-      {SUPPORT_PLAYBACK_RATE && (
-        <div>
-          <LabelControlPair
-            ref={addRef('speed')}
-            label={t('config.speed')}
-            control={
-              <div className='ms-2 me-2'>
-                <SliderAlt
-                  value={rate}
-                  onChange={(_, val) => {
-                    setRate(val as number);
-                  }}
-                  onChangeCommitted={(_, val) =>
-                    updateConfig({
-                      speed: [val as number, config.speed[1]],
-                    })
-                  }
-                  step={null}
-                  min={0.25}
-                  max={2}
-                  marks={speedMarks}
-                  valueLabelDisplay='auto'
-                  valueLabelFormat={(val) => val + 'x'}
-                  track={false}
-                />
-              </div>
-            }
-          />
-
-          <FormControlLabel
-            label={t('config.preservePitch')}
-            control={
-              <Switch
-                checked={config.speed[1]}
-                onChange={(_, val) => {
-                  updateConfig({
-                    speed: [config.speed[0], val],
-                  });
-                }}
-              />
-            }
-          />
-        </div>
       )}
     </div>
   );

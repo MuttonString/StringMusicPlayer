@@ -7,18 +7,16 @@ import Typography from '@mui/material/Typography';
 import { disable, enable, isEnabled } from '@tauri-apps/plugin-autostart';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../../app/i18n';
 import { IS_APPLE, IS_DESKTOP } from '../../../constants/os';
 import { useConfig } from '../../../providers/ConfigProvider';
 import type { RefsProp } from '../../../types/component';
 import { CloseWindowAction } from '../../../types/config';
 import LabelControlPair from '../../ui/LabelControlPair';
-import MaterialIcon from '../../ui/MaterialIcon';
-import LangDialog from './LangDialog';
 
 export default function Common({ refs }: RefsProp) {
   const { t } = useTranslation();
   const [config, updateConfig] = useConfig();
-  const [langOpen, setLangOpen] = useState(false);
 
   const addRef = useCallback(
     (key: string) => (el: HTMLElement | null) => {
@@ -60,16 +58,22 @@ export default function Common({ refs }: RefsProp) {
         ref={addRef('language')}
         label={t('config.language')}
         control={
-          <Button
-            variant='outlined'
-            onClick={() => setLangOpen(true)}
-            startIcon={<MaterialIcon name='openInNew' />}
+          <Select
+            value={config.language || '-'}
+            onChange={(e) => {
+              const val = e.target.value;
+              updateConfig({ language: val === '-' ? '' : val });
+            }}
           >
-            {t('langDialog.title')}
-          </Button>
+            <MenuItem value='-'>{t('config.followSystem')}</MenuItem>
+            {Object.keys(i18n.services.resourceStore.data).map((item) => (
+              <MenuItem lang={item} key={item} value={item}>
+                {t('name', { lng: item })}
+              </MenuItem>
+            ))}
+          </Select>
         }
       />
-      <LangDialog open={langOpen} onClose={() => setLangOpen(false)} />
 
       {IS_DESKTOP && !IS_APPLE && (
         <LabelControlPair

@@ -27,11 +27,11 @@ export default function Cover({ useShortcutKeyReturnValue }: Props) {
   const rotation = useMotionValue(0);
   const resetAnimationRef = useRef<ReturnType<typeof animate> | null>(null);
   const currSong = media.playQueue[media.currIdx] as Song | undefined;
+  const cover = currSong?.cover?.[0];
 
-  const playbackRate = config.speed[0];
   const rotationSpeed = useMemo(
-    () => (360 / 15 / 1000) * playbackRate,
-    [playbackRate],
+    () => (360 / 15 / 1000) * config.speed,
+    [config.speed],
   );
 
   const coverLongPress = useLongPress(
@@ -66,7 +66,7 @@ export default function Cover({ useShortcutKeyReturnValue }: Props) {
 
   useEffect(() => {
     rotation.set(0);
-  }, [currSong?.cover, rotation]);
+  }, [cover, rotation]);
 
   return (
     currSong && (
@@ -92,7 +92,7 @@ export default function Cover({ useShortcutKeyReturnValue }: Props) {
               alt={t('media.playPage')}
               className='bg-background-default object-cover object-center rounded-full! h-18 w-18 shadow-2 cursor-pointer'
               style={{ rotate: rotation }}
-              src={currSong.cover?.[0] || defaultCover}
+              src={cover || defaultCover}
               onError={(e) => {
                 e.currentTarget.src = defaultCover;
               }}

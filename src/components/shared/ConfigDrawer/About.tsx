@@ -22,7 +22,7 @@ import { ARCH_MAP, OS_TYPE_MAP } from '../../../constants/os';
 import { useConfig } from '../../../providers/ConfigProvider';
 import { useSnackbar } from '../../../providers/SnackbarProvider';
 import type { RefsProp } from '../../../types/component';
-import { getLangs } from '../../../utils/lang';
+import { parseLangTag } from '../../../utils/lang';
 import DialogTemplate from '../../ui/DialogTemplate';
 
 interface Info {
@@ -109,17 +109,7 @@ export default function About({ refs }: RefsProp) {
       try {
         let lc = await locale();
         if (lc) {
-          try {
-            const displayNames = new Intl.DisplayNames(getLangs(), {
-              type: 'language',
-            });
-            const name = displayNames.of(lc);
-            if (name) lc = name;
-          } catch (err) {
-            console.error(
-              `Failed to convert locale "${lc}" into display name: ${err}`,
-            );
-          }
+          parseLangTag(lc);
         } else {
           lc = t('config.unknown');
         }

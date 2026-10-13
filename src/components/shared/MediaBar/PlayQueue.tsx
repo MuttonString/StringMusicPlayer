@@ -19,6 +19,7 @@ import {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../../app/i18n';
 import defaultCover from '../../../assets/thumbnail.png';
 import { DIALOG_LEVAING_MS } from '../../../constants/animation';
 import { IS_APPLE } from '../../../constants/os';
@@ -32,7 +33,6 @@ import { BackendEvent } from '../../../types/event';
 import { KeyCode } from '../../../types/keyCode';
 import { formatTime } from '../../../utils/data';
 import delay from '../../../utils/delay';
-import { getLangs } from '../../../utils/lang';
 import InputWithClear from '../../ui/InputWithClear';
 import MaterialIcon from '../../ui/MaterialIcon';
 import SwipeableListItem from '../../ui/SwipeableListItem';
@@ -45,7 +45,7 @@ interface Props extends DialogBaseProps {
 
 export default function PlayQueue({ open, onClose, onOpen }: Props) {
   const { t } = useTranslation();
-  const langs = useMemo(getLangs, [t]);
+  const langs = i18n.languages;
   const [config] = useConfig();
   const { playQueue, currIdx } = useAudio();
   const [search, setSearch] = useState('');
@@ -102,13 +102,38 @@ export default function PlayQueue({ open, onClose, onOpen }: Props) {
   }, [filtered]);
 
   const removeAll = useCallback(async () => {
-    onClose();
-    await delay(config.animationDuration * DIALOG_LEVAING_MS);
+    if (filtered.length === playQueue.length) {
+      onClose();
+      await delay(config.animationDuration * DIALOG_LEVAING_MS);
+      await emit<UpdateQueuePayload>(BackendEvent.UpdateQueue, {
+        newQueue: [],
+        newIndex: -1,
+      });
+      return;
+    }
+
+    const filteredSet = new Set(filtered.map((item) => item.src));
+    const newQueue = playQueue.filter((item) => !filteredSet.has(item.src));
+    const newIndex = newQueue.findIndex((item) => item.src === currSrc);
+    setSearch('');
     await emit<UpdateQueuePayload>(BackendEvent.UpdateQueue, {
-      newQueue: [],
-      newIndex: -1,
+      newQueue,
+      newIndex:
+        newIndex === -1
+          ? config.playbackMode === PlaybackMode.Shuffle
+            ? Math.floor(Math.random() * newQueue.length)
+            : 0
+          : newIndex,
     });
-  }, [config.animationDuration, onClose]);
+    setSelected([]);
+  }, [
+    config.animationDuration,
+    config.playbackMode,
+    currSrc,
+    filtered,
+    onClose,
+    playQueue,
+  ]);
 
   const removeSelected = useCallback(async () => {
     const selectedSet = new Set(selected);
@@ -176,6 +201,7 @@ export default function PlayQueue({ open, onClose, onOpen }: Props) {
               size='small'
               className='[&>.MuiButton-startIcon]:me-0.5!'
               startIcon={<MaterialIcon name='delete' />}
+              disabled={filtered.length === 0}
               onClick={() => {
                 if (selected.length && selected.length !== playQueue.length) {
                   removeSelected();

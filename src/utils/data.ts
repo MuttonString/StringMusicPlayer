@@ -1,3 +1,5 @@
+import { join, tempDir } from '@tauri-apps/api/path';
+import { BaseDirectory, writeFile } from '@tauri-apps/plugin-fs';
 import { decompressSync, deflateSync, strFromU8, strToU8 } from 'fflate';
 
 /**
@@ -121,4 +123,23 @@ export function imgSrcToBlob(src: string, size: number) {
     img.onerror = reject;
     img.src = src;
   });
+}
+
+/**
+ * 将图片src保存到临时文件并返回file协议的url，失败会返回空字符串
+ */
+export async function srcToPath(src: string, fileName: string) {
+  try {
+    const response = await fetch(src);
+    const arrayBuffer = await response.arrayBuffer();
+    const data = new Uint8Array(arrayBuffer);
+    await writeFile(fileName, data, {
+      baseDir: BaseDirectory.Temp,
+    });
+    const path = await join(await tempDir(), fileName);
+    return 'file://' + path;
+  } catch (err) {
+    console.error('Failed to save image to temperary path: ' + err);
+    return '';
+  }
 }

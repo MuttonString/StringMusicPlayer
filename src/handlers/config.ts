@@ -3,12 +3,13 @@ import { join } from '@tauri-apps/api/path';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { Effect } from '@tauri-apps/api/window';
 import { exists, readDir, stat } from '@tauri-apps/plugin-fs';
+import { locale } from '@tauri-apps/plugin-os';
+import i18n from '../app/i18n';
 import bg from '../assets/bg.webp';
 import { IS_APPLE } from '../constants/os';
 import { WINDOW_LABEL } from '../constants/window';
 import type { AppConfig } from '../types/config';
 import { BackgroundType, ColorMode } from '../types/config';
-import { setLang } from './lang';
 
 const appWindow = getCurrentWebviewWindow();
 
@@ -24,18 +25,95 @@ const listenDevKey = (e: KeyboardEvent) => {
   }
 };
 
+const setEffects = (effects: Effect[]) => {
+  const style = document.body.style;
+  style.setProperty('--bg-image', 'transparent');
+  style.setProperty('--bg-overlay', 'transparent');
+  style.removeProperty('--bg-color');
+  appWindow.setEffects({
+    effects,
+  });
+};
+
+const setBgColor = (opacity: number) => {
+  const style = document.body.style;
+  style.setProperty(
+    '--bg-overlay',
+    `rgb(var(--mui-palette-AppBar-defaultBgChannel) / ${opacity}%)`,
+  );
+  style.setProperty('--bg-color', 'transparent');
+  setTimeout(() => appWindow.clearEffects());
+};
+
+const setSinglePicture = async (path: string, opacity: number) => {
+  const style = document.body.style;
+  if (!path) {
+    style.setProperty('--bg-image', `url(${bg})`);
+    setBgColor(opacity);
+    return;
+  }
+
+  try {
+    if ((await exists(path)) && (await stat(path)).isFile) {
+      style.setProperty(
+        '--bg-image',
+        `url(${path ? convertFileSrc(path) : bg})`,
+      );
+    } else {
+      style.setProperty('--bg-image', `url(${bg})`);
+    }
+  } catch (err) {
+    console.error('Failed to get picture: ' + err);
+    style.setProperty('--bg-image', `url(${bg})`);
+  }
+  setBgColor(opacity);
+};
+
+const setRandomPicture = async (path: string, opacity: number) => {
+  const style = document.body.style;
+  if (!path) {
+    style.setProperty('--bg-image', `url(${bg})`);
+    setBgColor(opacity);
+    return;
+  }
+
+  try {
+    if (!((await exists(path)) && (await stat(path)).isDirectory)) {
+      style.setProperty('--bg-image', `url(${bg})`);
+      setBgColor(opacity);
+      return;
+    }
+
+    const entries = await readDir(path);
+    const files = entries
+      .filter((entry) => entry.isFile)
+      .map((file) => file.name);
+    if (files.length === 0) {
+      style.setProperty('--bg-image', `url(${bg})`);
+      return;
+    }
+    const img = files[Math.floor(Math.random() * files.length)];
+    const fullPath = await join(path, img);
+    style.setProperty('--bg-image', `url(${convertFileSrc(fullPath)})`);
+  } catch (err) {
+    console.error('Failed to get random picture from folder: ' + err);
+    style.setProperty('--bg-image', `url(${bg})`);
+  }
+  setBgColor(opacity);
+  return;
+};
+
 /**
  * 映射为应用某设置项的对应函数
  */
 export const applyConfigFnMap: {
-  [key in keyof AppConfig]?: (
-    value: AppConfig[key],
-    prev: AppConfig[key],
-  ) => void;
+  [key in keyof AppConfig]?: (value: AppConfig[key]) => void;
 } = {
   language(value) {
     setTimeout(async () => {
-      await setLang(value);
+      const loc = value || (await locale()) || 'en';
+      await i18n.changeLanguage(loc);
+      document.documentElement.lang = loc;
       if (document.body.style.display) {
         document.body.style.display = '';
         console.info('Language loaded.');
@@ -56,32 +134,11 @@ export const applyConfigFnMap: {
         break;
     }
   },
-  async backgroundMainWindow(
-    { type, opacity, path },
-    { type: prevType, path: prevPath },
-  ) {
+  backgroundMainWindowType(value) {
     if (WINDOW_LABEL !== 'main') return;
     const style = document.body.style;
 
-    const setBgColor = () => {
-      style.setProperty(
-        '--bg-overlay',
-        `rgb(var(--mui-palette-AppBar-defaultBgChannel) / ${opacity}%)`,
-      );
-      style.setProperty('--bg-color', 'transparent');
-      setTimeout(() => appWindow.clearEffects());
-    };
-
-    const setEffects = (effects: Effect[]) => {
-      style.setProperty('--bg-image', 'transparent');
-      style.setProperty('--bg-overlay', 'transparent');
-      style.removeProperty('--bg-color');
-      appWindow.setEffects({
-        effects,
-      });
-    };
-
-    switch (type) {
+    switch (value) {
       case BackgroundType.Standard:
         style.removeProperty('--bg-image');
         style.removeProperty('--bg-overlay');
@@ -98,85 +155,47 @@ export const applyConfigFnMap: {
         setEffects([Effect.Mica, Effect.Acrylic, Effect.Blur]);
         break;
       case BackgroundType.RandomPictures:
-        if (!path) {
-          style.setProperty('--bg-image', `url(${bg})`);
-          setBgColor();
-          break;
-        }
-
-        if (type === prevType && path === prevPath) {
-          setBgColor();
-          break;
-        }
-
-        try {
-          if (!((await exists(path)) && (await stat(path)).isDirectory)) {
-            style.setProperty('--bg-image', `url(${bg})`);
-            setBgColor();
-            break;
-          }
-
-          const entries = await readDir(path);
-          const files = entries
-            .filter((entry) => entry.isFile)
-            .map((file) => file.name);
-          if (files.length === 0) {
-            style.setProperty('--bg-image', `url(${bg})`);
-            break;
-          }
-          const img = files[Math.floor(Math.random() * files.length)];
-          const fullPath = await join(path, img);
-          style.setProperty('--bg-image', `url(${convertFileSrc(fullPath)})`);
-        } catch (err) {
-          console.error('Failed to get random picture from folder: ' + err);
-          style.setProperty('--bg-image', `url(${bg})`);
-        }
-        setBgColor();
+        setRandomPicture(
+          window.__CONFIG__.backgroundMainWindowPath,
+          window.__CONFIG__.backgroundMainWindowOpacity,
+        );
         break;
-
       default:
-        if (!path) {
-          style.setProperty('--bg-image', `url(${bg})`);
-          setBgColor();
-          break;
-        }
-
-        if (type === prevType && path === prevPath) {
-          setBgColor();
-          break;
-        }
-
-        try {
-          if ((await exists(path)) && (await stat(path)).isFile) {
-            style.setProperty(
-              '--bg-image',
-              `url(${path ? convertFileSrc(path) : bg})`,
-            );
-          } else {
-            style.setProperty('--bg-image', `url(${bg})`);
-          }
-        } catch (err) {
-          console.error('Failed to get picture: ' + err);
-          style.setProperty('--bg-image', `url(${bg})`);
-        }
-        setBgColor();
+        setSinglePicture(
+          window.__CONFIG__.backgroundMainWindowPath,
+          window.__CONFIG__.backgroundMainWindowOpacity,
+        );
         break;
     }
   },
-  async backgroundMiniWindow() {
+  backgroundMainWindowOpacity(value) {
+    setBgColor(value);
+  },
+  backgroundMainWindowPath(value) {
+    switch (window.__CONFIG__.backgroundMainWindowType) {
+      case BackgroundType.RandomPictures:
+        setRandomPicture(value, window.__CONFIG__.backgroundMainWindowOpacity);
+        break;
+      default:
+        setSinglePicture(value, window.__CONFIG__.backgroundMainWindowOpacity);
+        break;
+    }
+  },
+  backgroundMiniWindowType() {
     // [Effect.Blur, Effect.ContentBackground, Effect.Popover]
   },
-  advancedMaterial({ enabled, opacity }) {
-    if (enabled) {
+  advancedMaterialEnabled(value) {
+    if (value) {
       document.body.classList.add('advanced-material');
-      document.body.style.setProperty(
-        '--advanced-material-opacity',
-        String(opacity / 100),
-      );
     } else {
       document.body.classList.remove('advanced-material');
-      document.body.style.removeProperty('--advanced-material-opacity');
     }
+  },
+  advancedMaterialOpacity(value) {
+    document.body.style.setProperty(
+      '--advanced-material-opacity',
+      String(value / 100),
+    );
   },
   sharpStyle(val) {
     if (val) document.body.classList.add('sharp-style');

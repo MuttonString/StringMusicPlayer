@@ -43,10 +43,9 @@ export default function Progress() {
     accurateTimePercent.set((media.currentTime / duration) * 100);
   }, [accurateTimePercent, duration, media.currentTime]);
 
-  const playbackRate = config.speed[0];
   const oneMsPercent = useMemo(
-    () => (duration ? (playbackRate / (duration * 1000)) * 100 : 0),
-    [duration, playbackRate],
+    () => (duration ? (config.speed / (duration * 1000)) * 100 : 0),
+    [config.speed, duration],
   );
 
   useAnimationFrame((_, delta) => {
@@ -98,15 +97,13 @@ export default function Progress() {
   useEffect(() => {
     let cancelled = false;
     setWaveSrc(undefined);
-    if (showAudioWaveMode === ShowAudioWave.Never || !media.currBlobUrl) {
+    if (showAudioWaveMode === ShowAudioWave.Never || !media.currBuffer) {
       return;
     }
 
     const getWaveform = async () => {
       if (cancelled) return;
-      const generator = new WaveformGenerator(
-        await (await fetch(media.currBlobUrl)).arrayBuffer(),
-      );
+      const generator = new WaveformGenerator(media.currBuffer!);
       const wave = await generator.getWaveform({
         waveformColor: primaryColor,
         waveformWidth: 2000,
@@ -124,7 +121,7 @@ export default function Progress() {
     return () => {
       cancelled = true;
     };
-  }, [media.currBlobUrl, primaryColor, showAudioWaveMode]);
+  }, [media.currBuffer, primaryColor, showAudioWaveMode]);
 
   return (
     currSong && (

@@ -60,19 +60,19 @@ export default function WindowAppeance({ refs }: RefsProp) {
   const [font, setFont] = useState(globalFont);
   useEffect(() => setFont(globalFont), [globalFont]);
 
-  const bgMainOpacity = config.backgroundMainWindow.opacity;
+  const bgMainOpacity = config.backgroundMainWindowOpacity;
   const [opacityMain, setOpacityMain] = useState(bgMainOpacity);
   useEffect(() => setOpacityMain(bgMainOpacity), [bgMainOpacity]);
 
-  const bgMiniOpacity = config.backgroundMiniWindow.opacity;
+  const bgMiniOpacity = config.backgroundMiniWindowOpacity;
   const [opacityMini, setOpacityMini] = useState(bgMiniOpacity);
   useEffect(() => setOpacityMini(bgMiniOpacity), [bgMiniOpacity]);
 
-  const materialOpacity = config.advancedMaterial.opacity;
+  const materialOpacity = config.advancedMaterialOpacity;
   const [opacityMaterial, setOpacityMaterial] = useState(materialOpacity);
   useEffect(() => setOpacityMaterial(materialOpacity), [materialOpacity]);
 
-  const bgPath = config.backgroundMainWindow.path;
+  const bgPath = config.backgroundMainWindowPath;
   const [path, setPath] = useState('');
   const [name, setName] = useState('');
 
@@ -136,13 +136,10 @@ export default function WindowAppeance({ refs }: RefsProp) {
 
       if (!newPath) return;
       updateConfig({
-        backgroundMainWindow: {
-          ...config.backgroundMainWindow,
-          path: newPath,
-        },
+        backgroundMainWindowPath: newPath,
       });
     },
-    [config.backgroundMainWindow, path, t, updateConfig],
+    [path, t, updateConfig],
   );
 
   const colors = useMemo(() => {
@@ -229,13 +226,10 @@ export default function WindowAppeance({ refs }: RefsProp) {
           control={
             <Select
               fullWidth
-              value={config.backgroundMainWindow.type}
+              value={config.backgroundMainWindowType}
               onChange={(e) =>
                 updateConfig({
-                  backgroundMainWindow: {
-                    ...config.backgroundMainWindow,
-                    type: e.target.value,
-                  },
+                  backgroundMainWindowType: e.target.value,
                 })
               }
             >
@@ -273,7 +267,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
           {[
             BackgroundType.SinglePicture,
             BackgroundType.RandomPictures,
-          ].includes(config.backgroundMainWindow.type) && (
+          ].includes(config.backgroundMainWindowType) && (
             <motion.div
               variants={VERTICAL}
               custom='102.5px'
@@ -287,7 +281,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
                   startIcon={
                     <MaterialIcon
                       name={
-                        config.backgroundMainWindow.type ===
+                        config.backgroundMainWindowType ===
                         BackgroundType.SinglePicture
                           ? 'fileOpen'
                           : 'folderOpen'
@@ -297,13 +291,13 @@ export default function WindowAppeance({ refs }: RefsProp) {
                   variant='outlined'
                   onClick={() =>
                     selectPicture(
-                      config.backgroundMainWindow.type ===
+                      config.backgroundMainWindowType ===
                         BackgroundType.RandomPictures,
                     )
                   }
                 >
                   {t(
-                    config.backgroundMainWindow.type ===
+                    config.backgroundMainWindowType ===
                       BackgroundType.SinglePicture
                       ? 'config.selectPicture'
                       : 'config.selectFolder',
@@ -315,10 +309,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
                     variant='outlined'
                     onClick={() =>
                       updateConfig({
-                        backgroundMainWindow: {
-                          ...config.backgroundMainWindow,
-                          path: '',
-                        },
+                        backgroundMainWindowPath: '',
                       })
                     }
                   >
@@ -346,10 +337,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
                   }}
                   onChangeCommitted={(_, val) =>
                     updateConfig({
-                      backgroundMainWindow: {
-                        ...config.backgroundMainWindow,
-                        opacity: val as number,
-                      },
+                      backgroundMainWindowOpacity: val as number,
                     })
                   }
                   marks={opacityMarks}
@@ -368,13 +356,10 @@ export default function WindowAppeance({ refs }: RefsProp) {
           control={
             <Select
               fullWidth
-              value={config.backgroundMiniWindow.type}
+              value={config.backgroundMiniWindowType}
               onChange={(e) =>
                 updateConfig({
-                  backgroundMiniWindow: {
-                    ...config.backgroundMiniWindow,
-                    type: e.target.value,
-                  },
+                  backgroundMiniWindowType: e.target.value,
                 })
               }
             >
@@ -405,7 +390,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
 
         <AnimatePresence initial={false}>
           {[BackgroundType.Standard, BackgroundType.SinglePicture].includes(
-            config.backgroundMiniWindow.type,
+            config.backgroundMiniWindowType,
           ) && (
             <motion.div
               className='flex gap-4 me-2 items-center pt-2'
@@ -423,10 +408,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
                 }}
                 onChangeCommitted={(_, val) =>
                   updateConfig({
-                    backgroundMiniWindow: {
-                      ...config.backgroundMiniWindow,
-                      opacity: val as number,
-                    },
+                    backgroundMiniWindowOpacity: val as number,
                   })
                 }
                 marks={opacityMarks}
@@ -455,13 +437,10 @@ export default function WindowAppeance({ refs }: RefsProp) {
           label={t('config.advancedMaterial')}
           control={
             <Switch
-              checked={config.advancedMaterial.enabled}
+              checked={config.advancedMaterialEnabled}
               onChange={(_, val) =>
                 updateConfig({
-                  advancedMaterial: {
-                    ...config.advancedMaterial,
-                    enabled: val,
-                  },
+                  advancedMaterialEnabled: val,
                 })
               }
             />
@@ -469,7 +448,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
         />
 
         <AnimatePresence initial={false}>
-          {config.advancedMaterial.enabled && (
+          {config.advancedMaterialEnabled && (
             <motion.div
               className='flex gap-4 me-2 items-center pt-2'
               variants={VERTICAL}
@@ -490,10 +469,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
                 }}
                 onChangeCommitted={(_, val) =>
                   updateConfig({
-                    advancedMaterial: {
-                      ...config.advancedMaterial,
-                      opacity: val as number,
-                    },
+                    advancedMaterialOpacity: val as number,
                   })
                 }
                 marks={opacityMarks}

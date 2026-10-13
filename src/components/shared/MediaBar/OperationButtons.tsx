@@ -72,10 +72,10 @@ export default function OperationButtons({ show }: Props) {
 
   const [volumeUpKey] = useShortcutKey(
     () => {
-      const max = config.volume[1] ? 400 : 100;
-      if (config.volume[0] < max) {
+      const max = config.volumeOver100Allowed ? 400 : 100;
+      if (config.volumeValue < max) {
         updateConfig({
-          volume: [Math.min(config.volume[0] + 10, max), config.volume[1]],
+          volumeValue: Math.min(config.volumeValue + 10, max),
         });
       }
     },
@@ -85,9 +85,9 @@ export default function OperationButtons({ show }: Props) {
 
   const [volumeDownKey] = useShortcutKey(
     () => {
-      if (config.volume[0] > 0) {
+      if (config.volumeValue > 0) {
         updateConfig({
-          volume: [Math.max(config.volume[0] - 10, 0), config.volume[1]],
+          volumeValue: Math.max(config.volumeValue - 10, 0),
         });
       }
     },
@@ -233,9 +233,9 @@ export default function OperationButtons({ show }: Props) {
                   <ListItemIcon>
                     <MaterialIcon
                       name={
-                        config.volume[0] > 50
+                        config.volumeValue > 50
                           ? 'volumeUp'
-                          : config.volume[0] > 0
+                          : config.volumeValue > 0
                             ? 'volumeDown'
                             : 'volumeMute'
                       }

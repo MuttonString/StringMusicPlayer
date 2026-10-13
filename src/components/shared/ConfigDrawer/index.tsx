@@ -11,6 +11,7 @@ import {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../../app/i18n';
 import {
   CONFIG_GROUP_ID_LIST,
   CONFIG_ID_LIST,
@@ -20,7 +21,6 @@ import {
 import { useScrollKeyPressed } from '../../../hooks/useScrollKeyPressed';
 import { useConfig } from '../../../providers/ConfigProvider';
 import type { OpenConfigDrawerFn } from '../../../types/component';
-import { getLangs } from '../../../utils/lang';
 import About from './About';
 import Common from './Common';
 import DevOptions from './DevOptions';
@@ -116,7 +116,7 @@ export default function ConfigDrawer({ ref }: Props) {
               if (!val.trim()) {
                 return defaultOptions;
               }
-              const lang = getLangs();
+              const lang = i18n.languages;
               return opt.filter((item) =>
                 item.id
                   .toLocaleLowerCase(lang)

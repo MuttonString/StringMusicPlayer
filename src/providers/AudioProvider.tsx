@@ -7,37 +7,27 @@ import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { exists, readDir, stat } from '@tauri-apps/plugin-fs';
 import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 import { type } from '@tauri-apps/plugin-os';
-import {
-  parseBlob,
-  parseWebStream,
-  selectCover,
-  type IAudioMetadata,
-} from 'music-metadata';
-import type { ComponentProps, SyntheticEvent } from 'react';
+import type { IAudioMetadata } from 'music-metadata';
+import { parseBuffer, parseWebStream, selectCover } from 'music-metadata';
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import * as Tone from 'tone';
+import defaultCover from '../assets/cover.png';
 import { SUPPORTED_AUDIO_EXT_LIST } from '../constants/file';
-import {
-  IS_APPLE,
-  IS_DESKTOP,
-  SUPPORT_MEDIA_SESSION,
-  SUPPORT_PLAYBACK_RATE,
-  SUPPORT_SET_SINK_ID,
-} from '../constants/os';
+import { IS_APPLE, IS_DESKTOP, SUPPORT_SET_SINK_ID } from '../constants/os';
 import {
   DEFAULT_WINDOW_ICON,
   MAIN_WINDOW,
   WINDOW_LABEL,
 } from '../constants/window';
-import type { Cover, WebAudio } from '../types/audio';
+import type { ToneInstances } from '../types/audio';
 import {
   TaskbarButtons,
   type AudioProviderContext,
@@ -48,32 +38,18 @@ import type { ChildrenProp } from '../types/component';
 import { PlaybackMode } from '../types/config';
 import type { UpdateQueuePayload } from '../types/event';
 import { BackendEvent } from '../types/event';
-import { getAudioDuration, getBasename, imgSrcToBlob } from '../utils/data';
+import {
+  getAudioDuration,
+  getBasename,
+  imgSrcToBlob,
+  srcToPath,
+} from '../utils/data';
 import { fetchAlt } from '../utils/fetch';
 import { destroyAll, raise } from '../utils/window';
 import { useConfig } from './ConfigProvider';
 import { useSnackbar } from './SnackbarProvider';
 
 const isWindows = type() === 'windows';
-
-if (WINDOW_LABEL === 'main') {
-  if (SUPPORT_MEDIA_SESSION) {
-    navigator.mediaSession.setActionHandler('play', () =>
-      emit(BackendEvent.Play),
-    );
-    navigator.mediaSession.setActionHandler('pause', () =>
-      emit(BackendEvent.Pause),
-    );
-    navigator.mediaSession.setActionHandler('seekbackward', (e) =>
-      emit(BackendEvent.SeekBackward, e.seekOffset),
-    );
-    navigator.mediaSession.setActionHandler('seekforward', (e) =>
-      emit(BackendEvent.SeekForward, e.seekOffset),
-    );
-  } else {
-    console.warn('Do not support mediaSession.');
-  }
-}
 
 const removeExt = (name: string) => {
   const splited = name.split('.');
@@ -92,7 +68,6 @@ const initVal: AudioProviderContext = {
   pending: false,
   currentTime: 0,
   lyric: [],
-  currBlobUrl: '',
 };
 
 const Context = createContext(initVal);
@@ -103,242 +78,421 @@ export function AudioProvider({ children }: ChildrenProp) {
   const [config, updateConfig] = useConfig();
   const showSnackbar = useSnackbar();
   const { t } = useTranslation();
+  const toneRef = useRef<ToneInstances>(null);
   const randomIdxListRef = useRef<number[]>([]);
   const errSetRef = useRef(new Set<string>());
   const objectUrlSetRef = useRef(new Set<string>());
-
   const [currIdx, setCurrIdx] = useState(-1);
   const [prevIdx, setPrevIdx] = useState(-1);
   const [nextIdx, setNextIdx] = useState(-1);
   const [playQueue, setPlayQueue] = useState<Song[]>([]);
   const [paused, setPaused] = useState(true);
+  const pausedRef = useRef(paused);
   const [pending, setPending] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
+  const [currentTime, setCurrentTime] = useState(0); // 精确到秒
+  const currTimeRef = useRef(0); // 更精确的时间
+  const timerRef = useRef(0);
   const [lyric, setLyric] = useState<LyricSentence[]>([]);
-  const [currBlobUrl, setCurrBlobUrl] = useState('');
+  const [currBuffer, setCurrBuffer] = useState<[string, ArrayBuffer]>();
   const [opening, setOpening] = useState(false);
+  const controllerRef = useRef<AbortController>(null);
+  const currSrcRef = useRef('');
 
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const fakeAudioRef = useRef<HTMLAudioElement>(null);
-  const ctxRef = useRef<WebAudio>(null);
+  const currSong = playQueue[currIdx] as Song | undefined;
+  const shuffle = config.playbackMode === PlaybackMode.Shuffle;
+  const canChangeTrack = playQueue.length > 1;
+  const hasCurrSong = !!currSong;
+  const prevSong = playQueue[prevIdx] as Song | undefined;
+  const nextSong = playQueue[nextIdx] as Song | undefined;
 
-  // 初始化Context
   useEffect(() => {
-    if (!audioRef.current || ctxRef.current) return;
-    // @ts-ignore
-    // eslint-disable-next-line compat/compat
-    const context = new (window.AudioContext || window.webkitAudioContext)();
-    const source = context.createMediaElementSource(audioRef.current);
-    const fakeSource = context.createMediaElementSource(fakeAudioRef.current!);
-    const gain = context.createGain();
-    source.connect(gain);
-    fakeSource.connect(gain);
-    gain.connect(context.destination);
-    ctxRef.current = { context, gain };
+    currSrcRef.current = currSong?.src || '';
+  }, [currSong?.src]);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
+
+  // 初始化
+  useEffect(() => {
+    if (WINDOW_LABEL !== 'main') return;
+    invoke('detach_media_control');
+
+    const volume = new Tone.Volume(0).toDestination();
+    const player = new Tone.Player().connect(volume);
+    const grainPlayer = new Tone.GrainPlayer().connect(volume);
+
+    toneRef.current = {
+      volume,
+      player,
+      grainPlayer,
+      activePlayer: player,
+    };
+
+    return () => {
+      player.dispose();
+      grainPlayer.dispose();
+      volume.dispose();
+    };
   }, []);
+
+  useEffect(() => {
+    if (!isWindows || toneRef.current) return;
+
+    const updateThumbnailBtns = () => {
+      invoke('update_buttons', {
+        updates: [
+          {
+            id: TaskbarButtons.Prev,
+            enabled: canChangeTrack,
+            tooltip: t('media.prev') + (prevSong ? `\n${prevSong.title}` : ''),
+          },
+          {
+            id: TaskbarButtons.Toggle,
+            enabled: !pending && hasCurrSong,
+            paused,
+            tooltip: t(paused ? 'media.play' : 'media.pause'),
+          },
+          {
+            id: TaskbarButtons.Next,
+            enabled: canChangeTrack,
+            tooltip: t('media.next') + (nextSong ? `\n${nextSong.title}` : ''),
+          },
+        ],
+      });
+    };
+    updateThumbnailBtns();
+
+    const unlisten = listen(BackendEvent.ShowMainWindow, async () => {
+      console.info('Initializing thumbnail buttons.');
+      await invoke('init_thumbnail_buttons');
+      updateThumbnailBtns();
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [canChangeTrack, hasCurrSong, nextSong, paused, pending, prevSong, t]);
 
   // 设置音频输出设备
   useEffect(() => {
-    if (!SUPPORT_SET_SINK_ID || !ctxRef.current) return;
-    ctxRef.current.context
+    if (!SUPPORT_SET_SINK_ID || !toneRef.current) return;
+    // @ts-ignore
+    (Tone.getContext().rawContext._nativeAudioContext as AudioContext)
       .setSinkId(config.outputDevice)
       .catch((err) => console.error('Failed to set audio device: ' + err));
   }, [config.outputDevice]);
 
-  // 设置音量
+  // 倍速、变调
   useEffect(() => {
-    if (!audioRef.current) return;
-    const volume = config.volume[0] / 100;
-    if (volume > 1) {
-      audioRef.current.volume = 1;
-      fakeAudioRef.current!.volume = 1;
-      ctxRef.current!.gain.gain.value = volume;
+    const tone = toneRef.current;
+    if (!tone) return;
+    tone.activePlayer.stop();
+
+    if (config.speed === 1 && config.detune === 0) {
+      tone.activePlayer = tone.player;
+      if (!pausedRef.current) {
+        tone.player.start(Tone.now(), currTimeRef.current);
+      }
     } else {
-      audioRef.current.volume = volume;
-      fakeAudioRef.current!.volume = volume;
-      ctxRef.current!.gain.gain.value = 1;
-    }
-  }, [config.volume]);
-
-  // 设置速度
-  useEffect(() => {
-    if (!audioRef.current || !SUPPORT_PLAYBACK_RATE) return;
-    audioRef.current.playbackRate = config.speed[0];
-    fakeAudioRef.current!.playbackRate = config.speed[0];
-    audioRef.current.preservesPitch = config.speed[1];
-    fakeAudioRef.current!.preservesPitch = config.speed[1];
-  }, [config.speed]);
-
-  // 不依赖其他状态的状态更改
-  useEffect(() => {
-    const unlisten: Promise<UnlistenFn>[] = [];
-
-    unlisten.push(
-      listen<boolean>(BackendEvent.IsLoading, (e) => setPending(e.payload)),
-    );
-
-    unlisten.push(
-      listen(BackendEvent.Pause, () => {
-        setPaused(true);
-        if (audioRef.current) {
-          console.info('Pause audio.');
-          audioRef.current.pause();
-          fakeAudioRef.current!.pause();
-          if (SUPPORT_MEDIA_SESSION) {
-            navigator.mediaSession.playbackState = 'paused';
-          }
-        }
-      }),
-    );
-
-    unlisten.push(
-      listen(BackendEvent.Toggle, () =>
-        setPaused((prev) => {
-          emit(prev ? BackendEvent.Play : BackendEvent.Pause);
-          return !prev;
-        }),
-      ),
-    );
-
-    unlisten.push(
-      listen<number>(BackendEvent.TimeUpdate, (e) => setCurrentTime(e.payload)),
-    );
-
-    unlisten.push(
-      listen(BackendEvent.Stop, () => {
-        setPaused(true);
-        setCurrentTime(0);
-        if (audioRef.current) {
-          console.info('Stop audio.');
-          audioRef.current.pause();
-          fakeAudioRef.current!.pause();
-          audioRef.current.currentTime = 0;
-          fakeAudioRef.current!.currentTime = 0;
-        }
-      }),
-    );
-
-    unlisten.push(
-      listen<number>(BackendEvent.SetPosition, (e) => {
-        setCurrentTime(Math.floor(e.payload));
-        if (audioRef.current) {
-          console.info(`Set audio position to ${e.payload}s.`);
-          audioRef.current.currentTime = e.payload;
-        }
-      }),
-    );
-
-    unlisten.push(listen(BackendEvent.Raise, () => raise()));
-
-    unlisten.push(listen(BackendEvent.Quit, () => destroyAll()));
-
-    invoke<string[]>('opened_urls').then((val) => {
-      if (val.length === 0) return;
-      emit<string[]>(BackendEvent.OpenUri, val);
-    });
-
-    unlisten.push(
-      getCurrentWebviewWindow().onDragDropEvent((e) => {
-        if (e.payload.type === 'drop') {
-          emit(BackendEvent.OpenUri, e.payload.paths);
-        }
-      }),
-    );
-
-    return () => unlisten.forEach((item) => item.then((fn) => fn()));
-  }, []);
-
-  const currSong = playQueue[currIdx] as Song | undefined;
-
-  // 更新播放队列
-  useEffect(() => {
-    const unlisten = listen<UpdateQueuePayload>(
-      BackendEvent.UpdateQueue,
-      (e) => {
-        const { newQueue, newIndex } = e.payload;
-        console.info(
-          `Update play queue, length: ${newQueue?.length}, index: ${newIndex}`,
+      tone.activePlayer = tone.grainPlayer;
+      tone.grainPlayer.playbackRate = config.speed;
+      tone.grainPlayer.detune = config.detune;
+      tone.grainPlayer.grainSize = 0.1 * config.speed;
+      tone.grainPlayer.overlap = 0.05 * config.speed;
+      if (!pausedRef.current) {
+        setTimeout(() =>
+          tone.grainPlayer.start(
+            Tone.now(),
+            currTimeRef.current / config.speed,
+          ),
         );
+      }
+    }
+  }, [config.detune, config.speed]);
 
-        if (newQueue) {
-          setPlayQueue((prev) => {
-            const prevObj = Object.fromEntries(
-              prev.map((item) => [item.src, item]),
-            );
-            const newVal = newQueue.map((item) => ({
-              ...prevObj[item.src],
-              ...item,
-              metadataLoaded:
-                prevObj[item.src].metadataLoaded || item.metadataLoaded,
-            }));
-
-            // 清理不再使用的blob
-            const currSet = new Set(prev.flatMap((item) => item.cover));
-            objectUrlSetRef.current.forEach((item) => {
-              if (currSet.has(item)) return;
-              URL.revokeObjectURL(item);
-              objectUrlSetRef.current.delete(item);
-            });
-            return newVal;
-          });
-        }
-
-        if (newIndex !== undefined) {
-          setCurrIdx(newIndex);
-          if (currSong?.src === newQueue?.[newIndex].src) return;
-
-          setCurrentTime(0);
-          if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-          }
-        }
-      },
+  // 加载中
+  useEffect(() => {
+    const unlisten = listen<boolean>(BackendEvent.IsLoading, (e) =>
+      setPending(e.payload),
     );
-
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [currSong?.src]);
+  }, []);
 
   // 播放
   useEffect(() => {
     const unlisten = listen(BackendEvent.Play, async () => {
-      if (audioRef.current && !pending) {
-        console.info('Play audio.');
-        setPaused(false);
-        if (SUPPORT_MEDIA_SESSION) {
-          navigator.mediaSession.playbackState = 'playing';
-        }
-        try {
-          const ctx = ctxRef.current?.context;
-          if (ctx?.state === 'suspended') {
-            await ctx.resume();
-          }
-          await audioRef.current.play();
-        } catch (err) {
-          console.error('Failed to play audio: ' + err);
-          showSnackbar(t('msg.playAudioFailed') + '\n' + err, 'error');
-          emit(BackendEvent.Pause);
-        }
-      }
+      setPaused(false);
+      if (!toneRef.current) return;
+      await Tone.start();
+      toneRef.current.activePlayer.start(
+        Tone.now(),
+        currTimeRef.current / config.speed,
+      );
     });
-
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [pending, showSnackbar, t]);
+  }, [config.speed]);
 
-  // 生成随机数列表
+  // 暂停
+  useEffect(() => {
+    const unlisten = listen(BackendEvent.Pause, async () => {
+      setPaused(true);
+      if (!toneRef.current) return;
+      toneRef.current.activePlayer.stop();
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  // 切换播放、暂停
+  useEffect(() => {
+    if (!toneRef.current) return;
+    const unlisten = listen(BackendEvent.Toggle, () => {
+      if (pausedRef.current) {
+        emit(BackendEvent.Play);
+      } else {
+        emit(BackendEvent.Pause);
+      }
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  // 播放进度更新
+  const dateRef = useRef(0);
+  useEffect(() => {
+    clearInterval(timerRef.current);
+    if (paused) return;
+
+    dateRef.current = Date.now();
+    timerRef.current = setInterval(() => {
+      const int = Math.floor(currTimeRef.current);
+      currTimeRef.current +=
+        ((Date.now() - dateRef.current) * config.speed) / 1000;
+      dateRef.current = Date.now();
+      if (int !== Math.floor(currTimeRef.current)) {
+        emit(BackendEvent.TimeUpdate, currTimeRef.current);
+      }
+
+      // 播放结束
+      if (
+        toneRef.current &&
+        toneRef.current.activePlayer.loaded &&
+        currTimeRef.current >=
+          toneRef.current.activePlayer.buffer.duration - 0.0625
+      ) {
+        switch (config.playbackMode) {
+          case PlaybackMode.NoRepeat:
+            emit(BackendEvent.Stop);
+            break;
+          case PlaybackMode.RepeatOne:
+            emit(BackendEvent.SetPosition, 0);
+            break;
+          default:
+            emit(BackendEvent.Next);
+            break;
+        }
+      }
+    }, 125);
+  }, [config.playbackMode, config.speed, paused]);
+
+  useEffect(() => {
+    const unlisten = listen<number>(BackendEvent.TimeUpdate, (e) =>
+      setCurrentTime(e.payload),
+    );
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  // 错误处理
+  const handleLoadError = useCallback(
+    (err: Error, src: string) => {
+      if (err.name === 'AbortError') {
+        console.warn(`Fetching "${src}" aborted.`);
+        return;
+      }
+      console.error('Failed to load audio: ' + err);
+      showSnackbar(t('msg.loadAudioFailed') + '\n' + err, 'error');
+
+      setTimeout(() => {
+        if (canChangeTrack && !errSetRef.current.has(src)) {
+          emit(BackendEvent.Next);
+          errSetRef.current.add(src);
+        } else {
+          emit(BackendEvent.Stop);
+        }
+      }, 1000);
+    },
+    [canChangeTrack, showSnackbar, t],
+  );
+  const handleLoadErrorRef = useRef(handleLoadError);
+  useEffect(() => {
+    handleLoadErrorRef.current = handleLoadError;
+  }, [handleLoadError]);
+
+  // 更新元数据至播放队列
+  const updateMetadata = useCallback(
+    async (src: string, data: IAudioMetadata) => {
+      // 生成封面缩略图
+      const pic = selectCover(data.common.picture);
+      let original: string;
+      let thumbnail: string;
+      if (pic) {
+        original = URL.createObjectURL(
+          new Blob([pic.data as BufferSource], {
+            type: pic.format,
+          }),
+        );
+        thumbnail = URL.createObjectURL(await imgSrcToBlob(original, 88));
+        objectUrlSetRef.current.add(original);
+        objectUrlSetRef.current.add(thumbnail);
+      }
+
+      // 针对未获取到时长的歌曲，用audio API再次获取
+      let duration = data.format.duration;
+      if (duration === undefined) {
+        duration = await getAudioDuration(src);
+      }
+
+      setPlayQueue((prev) => {
+        const idx = prev.findIndex((item) => item.src === src);
+        if (idx === -1 || prev[idx].metadataLoaded) return prev;
+
+        const newVal = [...prev];
+        const newObj = { ...newVal[idx], duration, metadataLoaded: true };
+
+        if (data.common.title) {
+          newObj.title = data.common.title;
+        }
+        if (data.common.artists) {
+          newObj.artists = data.common.artists?.map((label) => ({
+            label,
+          }));
+        }
+        if (data.common.album) {
+          newObj.album = { label: data.common.album };
+        }
+        if (pic) {
+          newObj.cover = [original, thumbnail];
+        }
+
+        newVal[idx] = newObj;
+        return newVal;
+      });
+    },
+    [],
+  );
+
+  // 当前歌曲更新
+  useEffect(() => {
+    const tone = toneRef.current;
+    if (!tone) return;
+
+    controllerRef.current?.abort();
+    setCurrBuffer(undefined);
+    setCurrentTime(0);
+    currTimeRef.current = 0;
+    emit(BackendEvent.IsLoading, true);
+    tone.activePlayer.stop();
+    if (!currSong?.src) return;
+
+    const load = async () => {
+      controllerRef.current = new AbortController();
+      const resp = await fetchAlt(currSong?.src, {
+        signal: controllerRef.current.signal,
+      });
+      const buffer = await resp.arrayBuffer();
+      const audioBuffer = await Tone.getContext().decodeAudioData(
+        buffer.slice(0),
+      );
+      if (currSrcRef.current !== currSong.src) return;
+
+      setCurrBuffer([currSong.src, buffer]);
+      emit(BackendEvent.IsLoading, false);
+      const toneAudioBuffer = new Tone.ToneAudioBuffer(audioBuffer);
+      tone.player.buffer = toneAudioBuffer;
+      tone.grainPlayer.buffer = toneAudioBuffer;
+      if (!pausedRef.current) {
+        await Tone.start();
+        toneRef.current!.activePlayer.start(Tone.now(), 0);
+      }
+    };
+
+    load().catch((err) => handleLoadErrorRef.current(err, currSong.src));
+  }, [currSong?.src]);
+
+  useEffect(() => {
+    if (
+      !hasCurrSong ||
+      currSong.metadataLoaded ||
+      currBuffer?.[0] !== currSong.src
+    )
+      return;
+    parseBuffer(new Uint8Array(currBuffer[1])).then((item) => {
+      updateMetadata(currSong.src, item);
+    });
+  }, [
+    currBuffer,
+    currSong?.metadataLoaded,
+    currSong?.src,
+    hasCurrSong,
+    updateMetadata,
+  ]);
+
+  useEffect(() => {
+    if (!toneRef.current) return;
+
+    if (hasCurrSong) {
+      const updatePlaying = async () => {
+        const url = currSong.cover?.[0];
+        const cover =
+          url === undefined || url.startsWith('blob:')
+            ? await srcToPath(url || defaultCover, 'StringMusic_cover')
+            : url;
+        invoke('set_metadata', {
+          metadata: {
+            title: currSong.title,
+            artist:
+              currSong.artists?.map((item) => item.label).join('; ') || '',
+            album: currSong.album?.label || '',
+            cover,
+            duration: currSong.duration || 0,
+          },
+        });
+        invoke('attach_media_control');
+      };
+      updatePlaying();
+    } else {
+      invoke('detach_media_control');
+    }
+  }, [
+    currSong?.album,
+    currSong?.artists,
+    currSong?.cover,
+    currSong?.duration,
+    currSong?.title,
+    hasCurrSong,
+  ]);
+
+  // 处理播放队列数量变化
   useEffect(() => {
     const len = playQueue.length;
-    const array: number[] = [];
 
-    if (len) {
-      setCurrIdx((prev) => (prev >= len ? len - 1 : prev));
-    } else {
+    if (!len) {
       setCurrIdx(-1);
+      randomIdxListRef.current = [];
+      return;
     }
+
+    const array: number[] = [];
+    setCurrIdx((prev) => (prev >= len ? len - 1 : prev));
 
     for (let i = 0; i < 2; i++) {
       const arr = Array.from({ length: len }, (_, i) => i);
@@ -360,8 +514,6 @@ export function AudioProvider({ children }: ChildrenProp) {
     randomIdxListRef.current = array;
   }, [playQueue.length]);
 
-  const shuffle = config.playbackMode === PlaybackMode.Shuffle;
-
   // 设置上一首、下一首的索引
   useEffect(() => {
     if (currIdx < 0) {
@@ -371,7 +523,6 @@ export function AudioProvider({ children }: ChildrenProp) {
     }
 
     const randIdxMap = randomIdxListRef.current;
-
     if (shuffle) {
       const len = randIdxMap.length;
       const idxInRand = randIdxMap.indexOf(currIdx);
@@ -384,75 +535,62 @@ export function AudioProvider({ children }: ChildrenProp) {
     }
   }, [currIdx, playQueue.length, shuffle]);
 
-  const canChangeTrack = playQueue.length > 1;
-
-  // 切换当前歌曲
+  // 上一首
   useEffect(() => {
-    const unlisten: Promise<UnlistenFn>[] = [];
-
-    unlisten.push(
-      listen(BackendEvent.Next, () => {
+    const unlisten = listen(BackendEvent.Previous, () => {
+      if (canChangeTrack) {
+        setCurrIdx(prevIdx);
+      } else {
         setCurrentTime(0);
-        if (audioRef.current) {
-          console.info('Next song.');
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        }
-        if (canChangeTrack) {
-          setCurrIdx(nextIdx);
-        }
-      }),
-    );
+        currTimeRef.current = 0;
+        if (!toneRef.current) return;
+        toneRef.current.activePlayer.stop();
+        toneRef.current.activePlayer.start(Tone.now(), 0);
+      }
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [canChangeTrack, prevIdx]);
 
-    unlisten.push(
-      listen(BackendEvent.Previous, () => {
-        setCurrentTime(0);
-        if (audioRef.current) {
-          console.info('Previous song.');
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        }
-        if (canChangeTrack) {
-          setCurrIdx(prevIdx);
-        }
-      }),
-    );
-
-    return () => unlisten.forEach((item) => item.then((fn) => fn()));
-  }, [canChangeTrack, nextIdx, prevIdx]);
-
-  // 快进快退
+  // 下一首
   useEffect(() => {
-    const unlisten: Promise<UnlistenFn>[] = [];
+    const unlisten = listen(BackendEvent.Next, () => {
+      if (canChangeTrack) {
+        setCurrIdx(nextIdx);
+      } else {
+        setCurrentTime(0);
+        currTimeRef.current = 0;
+        if (!toneRef.current) return;
+        toneRef.current.activePlayer.stop();
+        toneRef.current.activePlayer.start(Tone.now(), 0);
+      }
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [canChangeTrack, nextIdx]);
 
-    unlisten.push(
-      listen<number | undefined>(BackendEvent.SeekBackward, (e) => {
-        const audio = audioRef.current;
-        if (!audio) return;
-        const duration =
-          e.payload ??
-          (!config.seekBySentence || lyric.length <= 1 ? 10 : undefined);
-        let position: number;
+  // 停止
+  useEffect(() => {
+    const unlisten = listen(BackendEvent.Stop, () => {
+      setCurrentTime(0);
+      currTimeRef.current = 0;
+      setPaused(true);
+      if (!toneRef.current) return;
+      toneRef.current.activePlayer.stop();
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
-        if (duration === undefined) {
-          console.info(`Seek backward ${duration}s.`);
-          position =
-            lyric[
-              lyric.findIndex((item) => item.start <= audio.currentTime) + 1
-            ].start - config.replayDelay;
-        } else {
-          console.info('Seek backward one sentence.');
-          position = audio.currentTime - duration;
-        }
-
-        emit(BackendEvent.SetPosition, Math.max(0, position));
-      }),
-    );
-
-    unlisten.push(
-      listen<number | undefined>(BackendEvent.SeekForward, (e) => {
-        const audio = audioRef.current;
-        if (!audio) return;
+  // 向前
+  useEffect(() => {
+    const unlisten = listen<number | undefined>(
+      BackendEvent.SeekForward,
+      (e) => {
+        if (!toneRef.current) return;
         const duration =
           e.payload ??
           (!config.seekBySentence || lyric.length <= 1 ? 10 : undefined);
@@ -461,135 +599,90 @@ export function AudioProvider({ children }: ChildrenProp) {
         if (duration === undefined) {
           console.info(`Seek forward ${duration}s.`);
           position =
-            (lyric.find((item) => item.start > audio.currentTime)?.start ||
+            (lyric.find((item) => item.start > currTimeRef.current)?.start ||
               Infinity) - config.replayDelay;
         } else {
           console.info('Seek forward one sentence.');
-          position = audio.currentTime + duration;
+          position = currTimeRef.current + duration;
         }
 
-        emit(BackendEvent.SetPosition, Math.min(audio.duration, position));
-      }),
+        emit(BackendEvent.SetPosition, Math.max(0, position));
+      },
     );
-  }, [config.replayDelay, config.seekBySentence, lyric]);
-
-  // 监听来自外部的音量改变
-  const canOver100 = config.volume[1];
-  useEffect(() => {
-    const unlisten = listen<number>(BackendEvent.SetVolume, (e) => {
-      if (!audioRef.current) return;
-      const volume = e.payload;
-      console.info(`Set volume to ${volume}.`);
-      updateConfig({ volume: [volume * 100, canOver100] });
-    });
-
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [canOver100, updateConfig]);
+  }, [config.replayDelay, config.seekBySentence, lyric]);
 
-  const updatePlayQueue = useCallback(
-    async (
-      data: (
-        [string, IAudioMetadata | null] | [string, IAudioMetadata, Cover]
-      )[],
-    ) => {
-      // 获取封面并生成缩略图
-      for (const obj of data) {
-        const pic = selectCover(obj[1]?.common.picture);
-        if (!pic) continue;
+  // 向后
+  useEffect(() => {
+    const unlisten = listen<number | undefined>(
+      BackendEvent.SeekBackward,
+      (e) => {
+        if (!toneRef.current) return;
+        const duration =
+          e.payload ??
+          (!config.seekBySentence || lyric.length <= 1 ? 10 : undefined);
+        let position: number;
 
-        const original = URL.createObjectURL(
-          new Blob([pic.data as BufferSource], {
-            type: pic.format,
-          }),
+        if (duration === undefined) {
+          console.info(`Seek forward ${duration}s.`);
+          position =
+            lyric[
+              lyric.findIndex((item) => item.start <= currTimeRef.current) + 1
+            ].start - config.replayDelay;
+        } else {
+          console.info('Seek forward one sentence.');
+          position = currTimeRef.current - duration;
+        }
+
+        emit(BackendEvent.SetPosition, position);
+      },
+    );
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [config.replayDelay, config.seekBySentence, lyric]);
+
+  // 跳转
+  useEffect(() => {
+    const unlisten = listen<number>(BackendEvent.SetPosition, (e) => {
+      setCurrentTime(Math.floor(e.payload));
+      currTimeRef.current = e.payload;
+      if (toneRef.current) {
+        console.info(`Set audio position to ${e.payload}s.`);
+        toneRef.current.activePlayer.stop();
+        if (pausedRef.current) return;
+        toneRef.current.activePlayer.start(
+          Tone.now(),
+          e.payload / config.speed,
         );
-        objectUrlSetRef.current.add(original);
-        const thumbnail = URL.createObjectURL(await imgSrcToBlob(original, 88));
-        (obj as [string, IAudioMetadata, Cover]).push([original, thumbnail]);
       }
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [config.speed]);
 
-      // 将元数据更新到播放队列
-      setPlayQueue((oldVal) => {
-        let cnt = 0;
-        const newVal = [...oldVal];
-        const noDurationSrc: string[] = [];
-        const oldValObj = Object.fromEntries(
-          oldVal.map((item, idx) => [item.src, idx]),
-        );
+  // 更改音量
+  useEffect(() => {
+    if (!toneRef.current) return;
 
-        data.forEach(([src, meta, cover]) => {
-          const idx = oldValObj[src] as number | undefined;
-          if (idx === undefined || oldVal[idx].metadataLoaded) return;
-          cnt++;
+    toneRef.current.volume.volume.value =
+      config.volumeValue <= 0
+        ? -Infinity
+        : 20 * Math.log10(config.volumeValue / 100);
+  }, [config.volumeValue]);
 
-          const newObj = { ...newVal[idx], metadataLoaded: true };
-          newVal[idx] = newObj;
-          if (!meta) return;
-
-          if (meta.common.title) {
-            newObj.title = meta.common.title;
-          }
-          newObj.artists = meta.common.artists?.map((artist) => ({
-            label: artist,
-          }));
-          if (meta.common.album) {
-            newObj.album = { label: meta.common.album };
-          }
-          if (newObj.duration === undefined) {
-            newObj.duration = meta.format.duration;
-            if (newObj.duration === undefined) {
-              noDurationSrc.push(src);
-            }
-          }
-          newObj.cover = cover;
-          newVal[idx] = newObj;
-        });
-
-        // 针对未获取到时长的歌曲，用audio API再次获取
-        if (noDurationSrc.length) {
-          setTimeout(async () => {
-            const durations: number[] = [];
-            for (const src of noDurationSrc) {
-              try {
-                durations.push(await getAudioDuration(src));
-              } catch (err) {
-                console.error(`Failed to get duration of "${src}": ${err}`);
-                durations.push(0);
-              }
-            }
-
-            setPlayQueue((oldVal) => {
-              let cnt = 0;
-              const newVal = [...oldVal];
-              const oldValObj = Object.fromEntries(
-                oldVal.map((item, idx) => [item.src, idx]),
-              );
-
-              noDurationSrc.forEach((src, i) => {
-                const idx = oldValObj[src] as number | undefined;
-                if (idx === undefined) return;
-                cnt++;
-                newVal[idx] = { ...newVal[idx], duration: durations[i] };
-              });
-
-              if (cnt) {
-                return newVal;
-              }
-              return oldVal;
-            });
-          });
-        }
-
-        if (cnt) {
-          console.info(`Metadata of ${cnt} song(s) has been loaded.`);
-          return newVal;
-        }
-        return oldVal;
-      });
-    },
-    [],
-  );
+  useEffect(() => {
+    if (!toneRef.current) return;
+    const unlisten = listen<number>(BackendEvent.SetVolume, (e) => {
+      updateConfig({ volumeValue: e.payload * 100 });
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [updateConfig]);
 
   // 递归读取文件
   const parseUris = useCallback(async (uris: string[]) => {
@@ -635,6 +728,7 @@ export function AudioProvider({ children }: ChildrenProp) {
     return songs;
   }, []);
 
+  // 批量获取元数据
   const getMetadata = useCallback(
     (srcs: string[]) => {
       const localSrcs: string[] = [];
@@ -657,35 +751,24 @@ export function AudioProvider({ children }: ChildrenProp) {
         { type: 'module' },
       );
       worker.postMessage(localSrcs);
-      worker.onmessage = (
-        e: MessageEvent<[string, IAudioMetadata | null][]>,
-      ) => {
-        updatePlayQueue(e.data);
+      worker.onmessage = (e: MessageEvent<[string, IAudioMetadata]>) => {
+        updateMetadata(e.data[0], e.data[1]);
       };
 
       // 从在线歌曲url获取元数据
       setTimeout(async () => {
-        let part: [string, IAudioMetadata | null][] = [];
         for (const src of onlineSrcs) {
           try {
             const resp = await tauriFetch(src);
             const meta = await parseWebStream(resp.body);
-            part.push([src, meta]);
+            await updateMetadata(src, meta);
           } catch (err) {
             console.error(`Failed to get metadata of "${src}": ${err}`);
-            part.push([src, null]);
           }
-          if (part.length === 3) {
-            updatePlayQueue(part);
-            part = [];
-          }
-        }
-        if (part.length) {
-          updatePlayQueue(part);
         }
       });
     },
-    [updatePlayQueue],
+    [updateMetadata],
   );
 
   // 处理插入歌曲
@@ -702,33 +785,32 @@ export function AudioProvider({ children }: ChildrenProp) {
 
         if (filteredSongs.length === 0) {
           if (songs.length === 0) return prev;
-          const first = songs[0].src;
-          setCurrIdx(prev.findIndex((item) => item.src === first));
+          const src =
+            songs[shuffle ? Math.floor(Math.random() * songs.length) : 0].src;
+          setCurrIdx(prev.findIndex((item) => item.src === src));
           setCurrentTime(0);
-          if (audioRef.current) {
-            audioRef.current.currentTime = 0;
+          currTimeRef.current = 0;
+          if (toneRef.current) {
+            toneRef.current.activePlayer.stop();
+            toneRef.current.activePlayer.start(Tone.now(), 0);
           }
           return prev;
         }
 
-        const newArr = [...prev];
-        newArr.splice(currIdx + 1, 0, ...filteredSongs);
-
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
+        if (toneRef.current) {
+          toneRef.current.activePlayer.stop();
         }
 
         setCurrentTime(0);
+        currTimeRef.current = 0;
         setCurrIdx(
-          shuffle
-            ? Math.floor(Math.random() * filteredSongs.length + currIdx + 1)
-            : currIdx + 1,
+          (shuffle ? Math.floor(Math.random() * filteredSongs.length) : 0) +
+            prev.length,
         );
         setPaused(false);
 
         setTimeout(() => getMetadata(filteredSongs.map((item) => item.src)));
-        return newArr;
+        return [...prev, ...filteredSongs];
       });
       clearTimeout(timer);
       setOpening(false);
@@ -737,87 +819,82 @@ export function AudioProvider({ children }: ChildrenProp) {
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [currIdx, getMetadata, parseUris, shuffle, updatePlayQueue]);
+  }, [getMetadata, parseUris, shuffle]);
 
-  const hasCurrSong = !!currSong;
-  const prevSong = playQueue[prevIdx] as Song | undefined;
-  const nextSong = playQueue[nextIdx] as Song | undefined;
-
-  // 初始化Windows任务栏缩略图控件
   useEffect(() => {
-    if (!isWindows || WINDOW_LABEL !== 'main') return;
+    const unlisten: Promise<UnlistenFn>[] = [];
+    // 显示窗口
+    unlisten.push(listen(BackendEvent.Raise, raise));
 
-    const updateThumbnailBtns = () => {
-      invoke('update_buttons', {
-        updates: [
-          {
-            id: TaskbarButtons.Prev,
-            enabled: canChangeTrack,
-            tooltip: t('media.prev') + (prevSong ? `\n${prevSong.title}` : ''),
-          },
-          {
-            id: TaskbarButtons.Toggle,
-            enabled: !pending && hasCurrSong,
-            paused,
-            tooltip: t(paused ? 'media.play' : 'media.pause'),
-          },
-          {
-            id: TaskbarButtons.Next,
-            enabled: canChangeTrack,
-            tooltip: t('media.next') + (nextSong ? `\n${nextSong.title}` : ''),
-          },
-        ],
-      });
-    };
-    updateThumbnailBtns();
+    // 退出应用
+    unlisten.push(listen(BackendEvent.Quit, destroyAll));
 
-    const unlisten = listen(BackendEvent.ShowMainWindow, async () => {
-      console.info('Initialize thumbnail buttons.');
-      await invoke('init_thumbnail_buttons');
-      updateThumbnailBtns();
+    // 作为打开方式打开文件
+    invoke<string[]>('opened_urls').then((val) => {
+      if (val.length === 0) return;
+      emit<string[]>(BackendEvent.OpenUri, val);
     });
+
+    // 拖入文件
+    unlisten.push(
+      getCurrentWebviewWindow().onDragDropEvent((e) => {
+        if (e.payload.type === 'drop') {
+          emit(BackendEvent.OpenUri, e.payload.paths);
+        }
+      }),
+    );
+
+    return () => unlisten.forEach((item) => item.then((fn) => fn()));
+  }, []);
+
+  // 更新播放队列
+  useEffect(() => {
+    const unlisten = listen<UpdateQueuePayload>(
+      BackendEvent.UpdateQueue,
+      (e) => {
+        const { newQueue, newIndex } = e.payload;
+        console.info(
+          `Update play queue, length: ${newQueue?.length}, index: ${newIndex}`,
+        );
+
+        if (newQueue) {
+          setPlayQueue((prev) => {
+            const prevObj = Object.fromEntries(
+              prev.map((item) => [item.src, item]),
+            );
+            const newVal = newQueue.map((item) => ({
+              ...prevObj[item.src],
+              ...item,
+              metadataLoaded:
+                prevObj[item.src].metadataLoaded || item.metadataLoaded,
+            }));
+
+            // 清理不再使用的blob
+            const currSet = new Set(prev.flatMap((item) => item.cover));
+            objectUrlSetRef.current.forEach((item) => {
+              if (currSet.has(item)) return;
+              URL.revokeObjectURL(item);
+              objectUrlSetRef.current.delete(item);
+            });
+            return newVal;
+          });
+        }
+
+        if (newIndex !== undefined) {
+          setCurrIdx(newIndex);
+        }
+      },
+    );
 
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [canChangeTrack, hasCurrSong, nextSong, paused, pending, prevSong, t]);
-
-  // 将元数据显示到系统控件
-  useEffect(() => {
-    if (WINDOW_LABEL !== 'main') return;
-
-    if (SUPPORT_MEDIA_SESSION) {
-      console.info('Update mediaSession.');
-      navigator.mediaSession.metadata = currSong
-        ? new MediaMetadata({
-            title: currSong.title,
-            artist: currSong.artists?.map((item) => item.label).join('; '),
-            album: currSong.album?.label,
-            artwork: currSong.cover ? [{ src: currSong.cover[0] }] : undefined,
-          })
-        : null;
-    }
-
-    if (currSong) return;
-    setPaused(true);
-    audioRef.current?.pause();
-    fakeAudioRef.current?.pause();
-  }, [currSong]);
+  }, []);
 
   // 同步react状态与系统控件
   useEffect(() => {
-    if (WINDOW_LABEL !== 'main') return;
+    if (!toneRef.current) return;
 
-    if (SUPPORT_MEDIA_SESSION) {
-      navigator.mediaSession.setActionHandler(
-        'previoustrack',
-        canChangeTrack ? () => emit(BackendEvent.Previous) : null,
-      );
-      navigator.mediaSession.setActionHandler(
-        'nexttrack',
-        canChangeTrack ? () => emit(BackendEvent.Next) : null,
-      );
-    }
     if (isWindows) {
       invoke('update_buttons', {
         updates: [
@@ -829,17 +906,38 @@ export function AudioProvider({ children }: ChildrenProp) {
   }, [canChangeTrack]);
 
   useEffect(() => {
-    if (!isWindows || WINDOW_LABEL !== 'main') return;
+    if (!isWindows || !toneRef.current) return;
+
+    const prev = playQueue[prevIdx];
+    const prevTitle = prev
+      ? prev.translation
+        ? `\n${prev.title}\n(prev.translation)`
+        : '\n' + prev.title
+      : '';
+
+    const next = playQueue[nextIdx];
+    const nextTitle = next
+      ? next.translation
+        ? `\n${next.title}\n(next.translation)`
+        : '\n' + next.title
+      : '';
+
     invoke('update_buttons', {
       updates: [
-        { id: TaskbarButtons.Prev, tooltip: t('media.prev') },
-        { id: TaskbarButtons.Next, tooltip: t('media.next') },
+        {
+          id: TaskbarButtons.Prev,
+          tooltip: t('media.prev') + prevTitle,
+        },
+        {
+          id: TaskbarButtons.Next,
+          tooltip: t('media.next') + nextTitle,
+        },
       ],
     });
-  }, [t]);
+  }, [nextIdx, playQueue, prevIdx, t]);
 
   useEffect(() => {
-    if (!isWindows || WINDOW_LABEL !== 'main') return;
+    if (!isWindows || !toneRef.current) return;
     invoke('update_buttons', {
       updates: [
         {
@@ -852,9 +950,13 @@ export function AudioProvider({ children }: ChildrenProp) {
     });
   }, [paused, playQueue.length, t]);
 
+  useEffect(() => {
+    invoke('set_playback', { paused, position: currentTime });
+  }, [currentTime, paused]);
+
   // 更改窗口标题
   useEffect(() => {
-    if (!IS_DESKTOP || IS_APPLE) return;
+    if (!IS_DESKTOP || IS_APPLE || !toneRef.current) return;
     if (config.useMusicTitleAsWindowTitle && currSong?.title) {
       MAIN_WINDOW.setTitle(`${currSong.title} - ${t('common.stringMusic')}`);
     } else {
@@ -864,7 +966,7 @@ export function AudioProvider({ children }: ChildrenProp) {
 
   // 更改窗口图标
   useEffect(() => {
-    if (!IS_DESKTOP || IS_APPLE) return;
+    if (!IS_DESKTOP || IS_APPLE || !toneRef.current) return;
     if (config.useCoverAsIcon && currSong?.cover) {
       imgSrcToBlob(currSong.cover[0], isWindows ? 64 : 256)
         .then(async (val) => {
@@ -879,181 +981,6 @@ export function AudioProvider({ children }: ChildrenProp) {
     }
   }, [config.useCoverAsIcon, currSong?.cover]);
 
-  const handleLoadError = useCallback(
-    (err: unknown, src: string) => {
-      showSnackbar(t('msg.loadAudioFailed') + '\n' + err, 'error');
-
-      setTimeout(() => {
-        if (canChangeTrack && !errSetRef.current.has(src)) {
-          emit(BackendEvent.Next);
-          errSetRef.current.add(src);
-        } else {
-          emit(BackendEvent.Stop);
-        }
-      }, 1000);
-    },
-    [canChangeTrack, showSnackbar, t],
-  );
-  const handleLoadErrorRef = useRef(handleLoadError);
-  useEffect(() => {
-    handleLoadErrorRef.current = handleLoadError;
-  }, [handleLoadError]);
-
-  // 设置当前歌曲，使用双audio元素避免src变化时系统媒体控件短暂消失
-  useEffect(() => {
-    setCurrBlobUrl('');
-    if (audioRef.current) {
-      if (currSong?.src) {
-        emit(BackendEvent.IsLoading, true);
-        console.info(`Start loading audio "${getBasename(currSong.src)}".`);
-      } else {
-        audioRef.current.removeAttribute('src');
-        fakeAudioRef.current!.removeAttribute('src');
-      }
-
-      audioRef.current.pause();
-      fakeAudioRef.current!.pause();
-      [audioRef.current, fakeAudioRef.current] = [
-        fakeAudioRef.current,
-        audioRef.current,
-      ];
-    }
-
-    if (!currSong?.src) return;
-    const fetchSong = async () => {
-      try {
-        const resp = await fetchAlt(currSong.src);
-        const blob = await resp.blob();
-        const meta = await parseBlob(blob);
-        updatePlayQueue([[currSong.src, meta]]);
-
-        // 判断获取到blob后src是否发生了变化，不变更state
-        setPlayQueue((queue) => {
-          setCurrIdx((idx) => {
-            if (queue[idx]?.src !== currSong.src) return idx;
-
-            const url = URL.createObjectURL(blob);
-            setCurrBlobUrl(url);
-            const prevSrc = audioRef.current!.getAttribute('src');
-            audioRef.current!.src = url;
-            audioRef.current!.dataset.src = currSong.src;
-            if (prevSrc) URL.revokeObjectURL(prevSrc);
-
-            return idx;
-          });
-          return queue;
-        });
-      } catch (err) {
-        console.error(`Failed to fetch song from "${currSong.src}": ${err}`);
-        setPlayQueue((queue) => {
-          setCurrIdx((idx) => {
-            if (queue[idx]?.src !== currSong.src) return idx;
-            handleLoadErrorRef.current(err, currSong.src);
-            emit(BackendEvent.IsLoading, false);
-            return idx;
-          });
-          return queue;
-        });
-      }
-    };
-    fetchSong();
-  }, [currSong?.src, updatePlayQueue]);
-
-  const onTimeUpdate = (e: SyntheticEvent<HTMLAudioElement, Event>) => {
-    const int = Math.floor(e.currentTarget.currentTime);
-    if (Math.floor(currentTime) !== int) {
-      emit(BackendEvent.TimeUpdate, e.currentTarget.currentTime);
-    }
-  };
-
-  const audioProps = useMemo<ComponentProps<'audio'> | undefined>(
-    () =>
-      WINDOW_LABEL === 'main'
-        ? {
-            preload: 'auto',
-            onLoadStart: (e) => {
-              // 避免暂停状态切换多首歌曲造成系统媒体控件消失
-              e.currentTarget.muted = true;
-              e.currentTarget.play();
-            },
-            onCanPlay: async (e) => {
-              emit(BackendEvent.IsLoading, false);
-              const audio = e.currentTarget;
-              const src = audio.dataset.src;
-
-              // src变化时速度会被重置，故在此设置速度
-              if (SUPPORT_PLAYBACK_RATE) {
-                audio.playbackRate = config.speed[0];
-                audio.preservesPitch = config.speed[1];
-              }
-              if (!src || src !== currSong?.src) return;
-
-              console.info(`Audio "${getBasename(src)}" can be played.`);
-              if (paused) {
-                audio.pause();
-                return;
-              }
-              if (ctxRef.current?.context.state === 'suspended') {
-                await ctxRef.current.context.resume();
-              }
-              audio.muted = false;
-              audio.play();
-            },
-            onError: (e) => {
-              e.currentTarget.pause();
-              const error = e.currentTarget.error;
-              const src = e.currentTarget.dataset.src;
-              emit(BackendEvent.IsLoading, false);
-              if (!error || !src) return;
-
-              const errStr = `${error.message || 'Unknown error'} (Code: ${error.code})`;
-              console.error(
-                `Failed to load audio "${
-                  e.currentTarget.currentSrc
-                }": ${errStr}`,
-              );
-              handleLoadErrorRef.current(errStr, src);
-            },
-            onEnded: async (e) => {
-              switch (config.playbackMode) {
-                case PlaybackMode.NoRepeat:
-                  emit(BackendEvent.Stop);
-                  break;
-                case PlaybackMode.RepeatOne:
-                  if (ctxRef.current?.context.state === 'suspended') {
-                    await ctxRef.current.context.resume();
-                  }
-                  e.currentTarget.play();
-                  emit(BackendEvent.SetPosition, { position: 0 });
-                  break;
-                default:
-                  if (ctxRef.current?.context.state === 'suspended') {
-                    await ctxRef.current.context.resume();
-                  }
-                  emit(BackendEvent.Next);
-                  break;
-              }
-            },
-            onLoadedMetadata: (e) => {
-              const target = e.currentTarget;
-              setPlayQueue((oldVal) => {
-                const idx = oldVal.findIndex(
-                  (val) => val.src === target.dataset.src,
-                );
-                if (idx === -1 || oldVal[idx].duration !== undefined) {
-                  return oldVal;
-                }
-
-                const newVal = [...oldVal];
-                newVal[idx] = { ...newVal[idx], duration: target.duration };
-                return newVal;
-              });
-            },
-          }
-        : undefined,
-    [config.playbackMode, config.speed, currSong?.src, paused],
-  );
-
   return (
     <Context.Provider
       value={{
@@ -1066,21 +993,11 @@ export function AudioProvider({ children }: ChildrenProp) {
         pending,
         currentTime,
         lyric,
-        currBlobUrl,
+        currBuffer: currBuffer?.[1],
         setLyric,
       }}
     >
       {children}
-      {WINDOW_LABEL === 'main' && (
-        <>
-          <audio ref={audioRef} onTimeUpdate={onTimeUpdate} {...audioProps} />
-          <audio
-            ref={fakeAudioRef}
-            onTimeUpdate={onTimeUpdate}
-            {...audioProps}
-          />
-        </>
-      )}
       {opening && (
         <div className='fixed flex items-center gap-2 inset-e-2 bottom-2 z-10000 pointer-events-none'>
           <CircularProgress size={24} />

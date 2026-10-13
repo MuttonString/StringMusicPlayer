@@ -48,21 +48,21 @@ export default function useTrayMenu() {
     Menu.new({
       items: [
         {
-          text: t('prev'),
+          text: t('media.prev'),
           enabled: playQueue.length > 1,
           action() {
             emit(BackendEvent.Previous);
           },
         },
         {
-          text: t(paused ? 'play' : 'pause'),
+          text: t(paused ? 'media.play' : 'media.pause'),
           enabled: !pending && playQueue.length > 0,
           action() {
             emit(BackendEvent.Toggle);
           },
         },
         {
-          text: t('next'),
+          text: t('media.next'),
           enabled: playQueue.length > 1,
           action() {
             emit(BackendEvent.Next);

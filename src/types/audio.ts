@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type * as Tone from 'tone';
 
 export interface AudioProviderContext {
   currIdx: number; // 无正在播放的歌曲时为-1
@@ -10,12 +11,14 @@ export interface AudioProviderContext {
   currentTime: number;
   lyric: LyricSentence[];
   setLyric: (lyric: LyricSentence[]) => void;
-  currBlobUrl: string;
+  currBuffer?: ArrayBuffer;
 }
 
-export interface WebAudio {
-  context: AudioContext;
-  gain: GainNode;
+export interface ToneInstances {
+  volume: Tone.Volume;
+  player: Tone.Player;
+  grainPlayer: Tone.GrainPlayer;
+  activePlayer: Tone.Player | Tone.GrainPlayer;
 }
 
 export const enum TaskbarButtons {

@@ -1,17 +1,26 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import en from '../assets/lang/en.json';
-import zhHans from '../assets/lang/zh-Hans.json';
-import zhHant from '../assets/lang/zh-Hant.json';
-import { BuiltInLang } from '../types/lang';
+import en from '../lang/en.json';
+import ja from '../lang/ja.json';
+import lzh from '../lang/lzh.json';
+import zhHans from '../lang/zh-Hans.json';
+import zhHant from '../lang/zh-Hant.json';
 
 i18n.use(initReactI18next).init({
   resources: {
-    [BuiltInLang.zhHans]: { translation: zhHans },
-    [BuiltInLang.zhHant]: { translation: zhHant },
-    [BuiltInLang.en]: { translation: en },
+    en: { translation: en },
+    'zh-Hans': { translation: zhHans },
+    'zh-Hant': { translation: zhHant },
+    ja: { translation: ja },
+    lzh: { translation: lzh },
   },
-  fallbackLng: { zh: [BuiltInLang.zhHans], default: [BuiltInLang.en] },
+  fallbackLng: {
+    'zh-TW': ['zh-Hant', 'en'],
+    'zh-HK': ['zh-Hant', 'en'],
+    'zh-MO': ['zh-Hant', 'en'],
+    zh: ['zh-Hans', 'en'],
+    default: ['en'],
+  },
 });
 
 export default i18n;

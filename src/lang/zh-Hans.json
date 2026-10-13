@@ -1,4 +1,5 @@
 {
+  "name": "简体中文",
   "common": {
     "stringMusic": "String 音乐",
     "noOptions": "无结果",
@@ -9,8 +10,7 @@
   },
   "msg": {
     "devOptionEnabled": "开发者选项已启用。",
-    "loadAudioFailed": "加载音频失败。",
-    "playAudioFailed": "播放音频失败。"
+    "loadAudioFailed": "加载音频失败。"
   },
   "menu": {
     "desktopLyric": "桌面歌词",
@@ -19,7 +19,7 @@
     "exit": "退出应用"
   },
   "media": {
-    "playPage": "点击进入播放页",
+    "playPage": "点击打开播放页",
     "enableCoverRotate": "长按启用旋转",
     "disableCoverRotate": "长按禁用旋转",
     "artist": "艺人",
@@ -88,7 +88,8 @@
     "common": "常规",
     "autoStart": "开机后自启动",
     "language": "语言",
-    "closeWindowAction": "关闭窗口时的行为",
+    "followSystem": "跟随系统",
+    "closeWindowAction": "窗口关闭行为",
     "ask": "每次询问",
     "minimize": "最小化到托盘",
     "exit": "退出应用",
@@ -97,7 +98,6 @@
 
     "windowAppearance": "窗口外观",
     "colorMode": "颜色模式",
-    "followSystem": "跟随系统",
     "light": "亮",
     "dark": "暗",
     "primaryColor": "主题色",
@@ -129,13 +129,15 @@
     "always": "常驻",
     "coverRotation": "媒体栏封面旋转",
     "coverRotationTip": "窗口过窄时不会显示。",
-    "useCoverAsIcon": "将音乐封面用作窗口图标",
-    "useMusicTitleAsWindowTitle": "将音乐标题用作窗口标题",
+    "useCoverAsIcon": "将歌曲封面用作窗口图标",
+    "useMusicTitleAsWindowTitle": "将歌曲标题用作窗口标题",
     "volume": "音量",
-    "canOver100": "允许超过100",
-    "canOver100Tip": "超过100的音量可能导致失真。",
+    "over100Allowed": "允许超过100",
+    "over100AllowedTip": "超过100的音量可能导致失真。",
     "speed": "播放速度",
-    "preservePitch": "保持音高",
+    "speedTip": "非原速播放（特别是低速）会影响音质并使用更多 CPU 资源。",
+    "detune": "音高偏移",
+    "detuneTip": "音高偏移会使用更多 CPU 资源。",
 
     "about": "关于",
     "unknown": "未知",
@@ -189,18 +191,6 @@
     "cancel": "取消",
     "confirm": "确认",
     "close": "关闭"
-  },
-  "langDialog": {
-    "title": "语言管理",
-    "search": "按名称搜索",
-    "followSystem": "跟随系统",
-    "update": "更新",
-    "download": "下载",
-    "builtIn": "内置",
-    "code": "语言代码",
-    "version": "版本",
-    "author": "作者",
-    "desc": "描述"
   },
   "closeWindowDialog": {
     "title": "关闭窗口",

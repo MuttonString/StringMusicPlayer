@@ -96,20 +96,17 @@ export interface AppConfig {
   // 窗口外观
   colorMode: ColorMode;
   primaryColor: Colors;
-  backgroundMainWindow: {
-    type: BackgroundType;
-    opacity: number; // 仅在图片背景时有效
-    path: string; // 仅在图片背景时有效
-  };
-  backgroundMiniWindow: {
-    type: Exclude<BackgroundType, BackgroundType.RandomPictures>;
-    opacity: number; // 仅在标准背景或图片背景时有效
-  };
+  backgroundMainWindowType: BackgroundType;
+  backgroundMainWindowOpacity: number; // 仅在图片背景时有效
+  backgroundMainWindowPath: string; // 仅在图片背景时有效
+  backgroundMiniWindowType: Exclude<
+    BackgroundType,
+    BackgroundType.RandomPictures
+  >;
+  backgroundMiniWindowOpacity: number; // 仅在标准背景或图片背景时有效
   globalFont: string; // 为空时使用默认
-  advancedMaterial: {
-    enabled: boolean;
-    opacity: number; // 仅启用时有效
-  };
+  advancedMaterialEnabled: boolean;
+  advancedMaterialOpacity: number; // 仅启用时有效
   sharpStyle: boolean;
   animationDuration: number;
 
@@ -151,10 +148,11 @@ export interface AppConfig {
   seekBySentence: boolean;
   replaceWholeList: boolean;
   replayDelay: number;
-  volume: [number, canOver100: boolean];
+  volumeValue: number;
+  volumeOver100Allowed: boolean;
   dynamicVolume: boolean;
-  speed: [playbackRate: number, preservesPitch: boolean]; // 仅在Windows和Android有效
-  audioFade: boolean;
+  speed: number;
+  detune: number;
   enableEqualizer: boolean;
   equalizerSliderMoveTogether: boolean;
   equalizer: [
