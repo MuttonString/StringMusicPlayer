@@ -72,9 +72,7 @@ export default function Progress() {
         ? rect.right - e.clientX
         : e.clientX - rect.left;
       const value = Math.round((relativeX / rect.width) * duration);
-      setSliderLabel(
-        formatTime(Math.min(Math.floor(duration), Math.max(value, 0))),
-      );
+      setSliderLabel(formatTime(Math.min(duration, Math.max(value, 0))));
       pointerX.set(relativeX > rect.width || relativeX < 0 ? NaN : relativeX);
     },
     [duration, pointerX],
@@ -249,7 +247,7 @@ export default function Progress() {
           </motion.div>
         </Tip>
         <div className='w-10 text-end text-sm'>
-          {formatTime(Math.floor(currSong.duration || 0))}
+          {formatTime(currSong.duration || 0)}
         </div>
       </div>
     )

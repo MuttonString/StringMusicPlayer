@@ -125,9 +125,9 @@ export default function PlayPage({ open, onClose }: Props) {
                 IS_APPLE && 'flex-row-reverse',
               )}
             >
-              <Tip title={t('playPage.exit' + ' ' + closeKey)}>
+              <Tip title={t('playPage.back' + ' ' + closeKey)}>
                 <IconButton
-                  aria-label={t('playPage.exit')}
+                  aria-label={t('playPage.back')}
                   color='inherit'
                   onClick={close}
                 >

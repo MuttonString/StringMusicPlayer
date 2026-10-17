@@ -27,6 +27,16 @@ export function getBasename(src: string) {
 }
 
 /**
+ * 移除文件扩展名
+ */
+export function removeExt(name: string) {
+  const splited = name.split('.');
+  if (splited.length === 1) return name;
+  splited.pop();
+  return splited.join('.');
+}
+
+/**
  * 获取长度20的只由数字和英文字母组成的随机key
  */
 export function getRandomKey() {

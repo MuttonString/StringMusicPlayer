@@ -60,7 +60,7 @@ export default function MediaBar() {
               opacity: 0,
               bottom: '-5rem', // MEDIA_BAR_HEIGHT * -1
             }}
-            className='z-10 ps-1 pe-1 flex overflow-clip bg-background-paper MuiPopover-paper h-(--media-bar-height) fixed overlay-16 inset-e-4 shadow-2 border border-divider'
+            className='z-10 ps-1 pe-1 flex overflow-clip bg-background-paper MuiPopover-paper h-(--media-bar-height) fixed overlay-16 inset-e-4 shadow-2 border border-divider text-text-primary'
           >
             <AnimatePresence>
               {notNarrow && <Cover useShortcutKeyReturnValue={shortcutKey} />}

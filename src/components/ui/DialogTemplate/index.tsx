@@ -90,7 +90,9 @@ export default function DialogTemplate(props: IProps) {
         </div>
       </DialogTitle>
       <Divider />
-      <DialogContent>{children}</DialogContent>
+      <DialogContent className='max-h-[calc(100vh-10rem)]'>
+        {children}
+      </DialogContent>
     </Dialog>
   );
 }

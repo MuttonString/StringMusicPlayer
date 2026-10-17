@@ -118,7 +118,7 @@ export default function ConfigDrawer({ ref }: Props) {
               }
               const lang = i18n.languages;
               return opt.filter((item) =>
-                item.id
+                item.label
                   .toLocaleLowerCase(lang)
                   .includes(val.toLocaleLowerCase(lang)),
               );
@@ -140,7 +140,7 @@ export default function ConfigDrawer({ ref }: Props) {
 
         <div
           ref={scrollRef}
-          className='overflow-y-auto flex-1 p-3 flex flex-col gap-8 text-nowrap [&_label]:text-wrap [&>div]:flex [&>div]:flex-col [&>div]:gap-2 [&>div]:items-start [&>div>div]:bg-action-hover [&>div>div]:hover:bg-action-focus [&>div>div]:transition-colors [&>div>div]:duration-[calc(var(--duration)*150ms)] [&>div>div]:rounded-lg [&>div>div]:p-2 [&>div>div]:w-full [&_.MuiFormHelperText-root]:[text-wrap:auto]'
+          className='overflow-y-auto flex-1 p-3 flex flex-col gap-16 text-nowrap [&_label]:text-wrap [&>div]:flex [&>div]:flex-col [&>div]:gap-2 [&>div]:items-start [&>div>div]:bg-action-hover [&>div>div]:hover:bg-action-focus [&>div>div]:transition-colors [&>div>div]:duration-[calc(var(--duration)*150ms)] [&>div>div]:rounded-lg [&>div>div]:p-2 [&>div>div]:w-full [&_.MuiFormHelperText-root]:[text-wrap:auto]'
         >
           <Common refs={refs} />
           <WindowAppeance refs={refs} />

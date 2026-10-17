@@ -1,3 +1,4 @@
+import type { EventInfo } from 'framer-motion';
 import { motion, useMotionValue, useTransform } from 'framer-motion';
 import type { ReactNode } from 'react';
 import { useRef } from 'react';
@@ -7,6 +8,8 @@ import MaterialIcon from '../MaterialIcon';
 interface Props {
   onSelect?: () => void;
   onDelete?: () => void;
+  onHoverStart?: (event: PointerEvent, info: EventInfo) => void;
+  onHoverEnd?: (event: PointerEvent, info: EventInfo) => void;
   children: ReactNode;
 }
 
@@ -21,6 +24,7 @@ export default function SwipeableListItem({
   onSelect,
   onDelete,
   children,
+  ...rest
 }: Props) {
   const x = useMotionValue(0);
   const draggedRef = useRef(false);
@@ -64,6 +68,7 @@ export default function SwipeableListItem({
             e.preventDefault();
           }
         }}
+        {...rest}
       >
         {children}
       </motion.div>

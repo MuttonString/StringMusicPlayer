@@ -99,7 +99,7 @@ export default function NavigatorList({
   return (
     <div
       className={classNames(
-        'flex flex-col justify-between w-full h-full [body.sharp-corner_&_ul>div]:ps-3! [body.sharp-corner_&_ul>div]:pe-3! [&_ul>div]:ps-2! [&_ul>div]:pe-1! [body:not(.sharp-corner)_&_ul>div]:ms-1! [body:not(.sharp-corner)_&_ul>div]:me-2!',
+        'text-text-primary flex flex-col justify-between w-full h-full [&_ul>div]:ps-2! [&_ul>div]:pe-1! [body.sharp-style_&_ul>div]:ps-3! [body.sharp-style_&_ul>div]:pe-3! [body:not(.sharp-style)_&_ul>div]:ms-1! [body:not(.sharp-style)_&_ul>div]:me-2!',
         className,
       )}
     >

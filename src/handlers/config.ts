@@ -169,14 +169,20 @@ export const applyConfigFnMap: {
     }
   },
   backgroundMainWindowOpacity(value) {
-    setBgColor(value);
+    if (
+      [BackgroundType.SinglePicture, BackgroundType.RandomPictures].includes(
+        window.__CONFIG__.backgroundMainWindowType,
+      )
+    ) {
+      setBgColor(value);
+    }
   },
   backgroundMainWindowPath(value) {
     switch (window.__CONFIG__.backgroundMainWindowType) {
       case BackgroundType.RandomPictures:
         setRandomPicture(value, window.__CONFIG__.backgroundMainWindowOpacity);
         break;
-      default:
+      case BackgroundType.SinglePicture:
         setSinglePicture(value, window.__CONFIG__.backgroundMainWindowOpacity);
         break;
     }

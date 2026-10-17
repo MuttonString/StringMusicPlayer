@@ -4,10 +4,14 @@ import AlbumRoundedIcon from '@mui/icons-material/AlbumRounded';
 import AlbumSharpIcon from '@mui/icons-material/AlbumSharp';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import ArrowBackSharpIcon from '@mui/icons-material/ArrowBackSharp';
+import ArrowDownwardRoundedIcon from '@mui/icons-material/ArrowDownwardRounded';
+import ArrowDownwardSharpIcon from '@mui/icons-material/ArrowDownwardSharp';
 import ArrowDropDownRoundedIcon from '@mui/icons-material/ArrowDropDownRounded';
 import ArrowDropDownSharpIcon from '@mui/icons-material/ArrowDropDownSharp';
 import ArrowForwardRoundedIcon from '@mui/icons-material/ArrowForwardRounded';
 import ArrowForwardSharpIcon from '@mui/icons-material/ArrowForwardSharp';
+import ArrowUpwardRoundedIcon from '@mui/icons-material/ArrowUpwardRounded';
+import ArrowUpwardSharpIcon from '@mui/icons-material/ArrowUpwardSharp';
 import AssistantRoundedIcon from '@mui/icons-material/AssistantRounded';
 import AssistantSharpIcon from '@mui/icons-material/AssistantSharp';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
@@ -24,12 +28,16 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import CloseSharpIcon from '@mui/icons-material/CloseSharp';
 import CodeRoundedIcon from '@mui/icons-material/CodeRounded';
 import CodeSharpIcon from '@mui/icons-material/CodeSharp';
+import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
+import ContentCopySharpIcon from '@mui/icons-material/ContentCopySharp';
 import DarkModeRoundedIcon from '@mui/icons-material/DarkModeRounded';
 import DarkModeSharpIcon from '@mui/icons-material/DarkModeSharp';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import DeleteSharpIcon from '@mui/icons-material/DeleteSharp';
 import DownloadRoundedIcon from '@mui/icons-material/DownloadRounded';
 import DownloadSharpIcon from '@mui/icons-material/DownloadSharp';
+import EqualizerRoundedIcon from '@mui/icons-material/EqualizerRounded';
+import EqualizerSharpIcon from '@mui/icons-material/EqualizerSharp';
 import FastForwardRoundedIcon from '@mui/icons-material/FastForwardRounded';
 import FastForwardSharpIcon from '@mui/icons-material/FastForwardSharp';
 import FastRewindRoundedIcon from '@mui/icons-material/FastRewindRounded';
@@ -72,26 +80,38 @@ import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import OpenInNewSharpIcon from '@mui/icons-material/OpenInNewSharp';
 import PauseCircleFilledRoundedIcon from '@mui/icons-material/PauseCircleFilledRounded';
 import PauseCircleFilledSharpIcon from '@mui/icons-material/PauseCircleFilledSharp';
+import PauseRoundedIcon from '@mui/icons-material/PauseRounded';
+import PauseSharpIcon from '@mui/icons-material/PauseSharp';
 import PeopleAltRoundedIcon from '@mui/icons-material/PeopleAltRounded';
 import PeopleAltSharpIcon from '@mui/icons-material/PeopleAltSharp';
 import PictureInPictureRoundedIcon from '@mui/icons-material/PictureInPictureRounded';
 import PictureInPictureSharpIcon from '@mui/icons-material/PictureInPictureSharp';
+import PlayArrowRoundedIcon from '@mui/icons-material/PlayArrowRounded';
+import PlayArrowSharpIcon from '@mui/icons-material/PlayArrowSharp';
 import PlayCircleFilledRoundedIcon from '@mui/icons-material/PlayCircleFilledRounded';
 import PlayCircleFilledSharpIcon from '@mui/icons-material/PlayCircleFilledSharp';
+import PlaylistAddRoundedIcon from '@mui/icons-material/PlaylistAddRounded';
+import PlaylistAddSharpIcon from '@mui/icons-material/PlaylistAddSharp';
 import QueueMusicRoundedIcon from '@mui/icons-material/QueueMusicRounded';
 import QueueMusicSharpIcon from '@mui/icons-material/QueueMusicSharp';
 import RedoRoundedIcon from '@mui/icons-material/RedoRounded';
 import RedoSharpIcon from '@mui/icons-material/RedoSharp';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import RefreshSharpIcon from '@mui/icons-material/RefreshSharp';
+import ReorderRoundedIcon from '@mui/icons-material/ReorderRounded';
+import ReorderSharpIcon from '@mui/icons-material/ReorderSharp';
 import RepeatOneRoundedIcon from '@mui/icons-material/RepeatOneRounded';
 import RepeatOneSharpIcon from '@mui/icons-material/RepeatOneSharp';
 import RepeatRoundedIcon from '@mui/icons-material/RepeatRounded';
 import RepeatSharpIcon from '@mui/icons-material/RepeatSharp';
 import Replay10RoundedIcon from '@mui/icons-material/Replay10Rounded';
 import Replay10SharpIcon from '@mui/icons-material/Replay10Sharp';
+import SaveAsRoundedIcon from '@mui/icons-material/SaveAsRounded';
+import SaveAsSharpIcon from '@mui/icons-material/SaveAsSharp';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import SearchSharpIcon from '@mui/icons-material/SearchSharp';
+import SelectAllRoundedIcon from '@mui/icons-material/SelectAllRounded';
+import SelectAllSharpIcon from '@mui/icons-material/SelectAllSharp';
 import SettingsBrightnessRoundedIcon from '@mui/icons-material/SettingsBrightnessRounded';
 import SettingsBrightnessSharpIcon from '@mui/icons-material/SettingsBrightnessSharp';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
@@ -180,4 +200,14 @@ export const ICON_MAP = {
   repeat: [RepeatRoundedIcon, RepeatSharpIcon],
   shuffle: [ShuffleRoundedIcon, ShuffleSharpIcon],
   delete: [DeleteRoundedIcon, DeleteSharpIcon],
+  playlistAdd: [PlaylistAddRoundedIcon, PlaylistAddSharpIcon],
+  arrowUpward: [ArrowUpwardRoundedIcon, ArrowUpwardSharpIcon],
+  arrowDownward: [ArrowDownwardRoundedIcon, ArrowDownwardSharpIcon],
+  selectAll: [SelectAllRoundedIcon, SelectAllSharpIcon],
+  reorder: [ReorderRoundedIcon, ReorderSharpIcon],
+  playArrow: [PlayArrowRoundedIcon, PlayArrowSharpIcon],
+  pause: [PauseRoundedIcon, PauseSharpIcon],
+  contentCopy: [ContentCopyRoundedIcon, ContentCopySharpIcon],
+  saveAs: [SaveAsRoundedIcon, SaveAsSharpIcon],
+  equalizer: [EqualizerRoundedIcon, EqualizerSharpIcon],
 } as const;

@@ -146,16 +146,14 @@ export interface AppConfig {
   useCoverAsIcon: boolean; // 仅在Windows和Linux有效
   useMusicTitleAsWindowTitle: boolean; // 仅在Windows和Linux有效
   seekBySentence: boolean;
-  replaceWholeList: boolean;
-  replayDelay: number;
+  replaceWholeQueue: boolean;
   volumeValue: number;
   volumeOver100Allowed: boolean;
-  dynamicVolume: boolean;
+  balanceVolume: boolean;
   speed: number;
   detune: number;
-  enableEqualizer: boolean;
-  equalizerSliderMoveTogether: boolean;
-  equalizer: [
+  equalizer: readonly [
+    number,
     number,
     number,
     number,

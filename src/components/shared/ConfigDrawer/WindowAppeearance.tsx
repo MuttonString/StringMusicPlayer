@@ -512,6 +512,7 @@ export default function WindowAppeance({ refs }: RefsProp) {
               }
               max={6}
               track={false}
+              valueLabelFormat={(val) => animationDurationMarks[val].label}
             />
           </div>
         }

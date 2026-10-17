@@ -105,7 +105,7 @@ export default function TitleBar() {
             initial='hidden'
             whileInView='visible'
             exit='hidden'
-            className='overflow-clip flex items-center gap-2 pointer-events-none whitespace-nowrap'
+            className='overflow-clip flex items-center gap-2 pointer-events-none whitespace-nowrap text-text-primary'
             style={
               !IS_APPLE || isFullscreen ? undefined : { visibility: 'hidden' }
             }

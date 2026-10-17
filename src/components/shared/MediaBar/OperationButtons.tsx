@@ -9,7 +9,7 @@ import {
 } from '@mui/material';
 import IconButton from '@mui/material/IconButton';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BASE_COMPONENT } from '../../../constants/animation';
 import { MEDIA_BAR_HEIGHT } from '../../../constants/window';
@@ -23,6 +23,7 @@ import MaterialIcon from '../../ui/MaterialIcon';
 import Tip from '../../ui/Tip';
 import VolumeSlider from '../../ui/VolumeSlider';
 import PlaybackModeButton from '../PlaybackModeButton';
+import InfoDialog from './InfoDialog';
 import PlayQueue from './PlayQueue';
 
 interface Props {
@@ -42,7 +43,7 @@ export default function OperationButtons({ show }: Props) {
   const openConfig = useConfigDrawer();
   const [queueOpen, setQueueOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState<HTMLButtonElement | null>(null);
-  const [_infoOpen, setInfoOpen] = useState(false);
+  const dialogRef = useRef<(src: string) => void>(() => {});
   const media = useAudio();
   const currSong = media.playQueue[media.currIdx] as Song | undefined;
 
@@ -59,7 +60,7 @@ export default function OperationButtons({ show }: Props) {
   const [openInfoKey, openInfo] = useShortcutKey(
     () => {
       setMenuAnchor(null);
-      setInfoOpen(true);
+      if (currSong) dialogRef.current(currSong.src);
     },
     [KeyCode.Ctrl, 'I'],
     true,
@@ -256,10 +257,13 @@ export default function OperationButtons({ show }: Props) {
                 </ListItem>
               </Menu>
 
+              <InfoDialog ref={dialogRef} />
+
               <PlayQueue
                 open={queueOpen}
                 onOpen={() => setQueueOpen(true)}
                 onClose={() => setQueueOpen(false)}
+                infoDialogRef={dialogRef}
               />
             </motion.div>
           )}

@@ -16,6 +16,8 @@ export interface AudioProviderContext {
 
 export interface ToneInstances {
   volume: Tone.Volume;
+  replayGain: Tone.Volume;
+  filters: Tone.Filter[];
   player: Tone.Player;
   grainPlayer: Tone.GrainPlayer;
   activePlayer: Tone.Player | Tone.GrainPlayer;
@@ -35,16 +37,19 @@ export interface DetailMetadata {
 }
 
 export interface SongDetail {
+  cover?: { format: string; data: Uint8Array; url: string } | null;
+  title: string;
+  src: string;
   year?: number;
-  track?: { no: number; of: number };
-  title?: string; // 元数据不存在title时，不回滚至文件名
+  trackNo: number | null;
+  trackTotal: number | null;
   artists?: string[];
   album?: string;
-  albumartists?: string[];
+  albumArtists?: string[];
   container?: string;
   codec?: string;
   codecProfile?: string;
-  duration?: string; // 用audio元素取值
+  duration: number;
   bitrate?: number;
   sampleRate?: number;
   bitsPerSample?: number;

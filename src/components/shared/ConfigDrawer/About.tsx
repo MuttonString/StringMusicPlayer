@@ -109,7 +109,7 @@ export default function About({ refs }: RefsProp) {
       try {
         let lc = await locale();
         if (lc) {
-          parseLangTag(lc);
+          lc = parseLangTag(lc);
         } else {
           lc = t('config.unknown');
         }

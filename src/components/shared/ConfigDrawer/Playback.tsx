@@ -1,11 +1,14 @@
 import {
   Autocomplete,
+  Button,
   FormControlLabel,
   FormHelperText,
   MenuItem,
   Select,
   Switch,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from '@mui/material';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -17,13 +20,15 @@ import {
 } from '../../../constants/os';
 import { useConfig } from '../../../providers/ConfigProvider';
 import type { RefsProp } from '../../../types/component';
-import { ShowAudioWave } from '../../../types/config';
+import { PlaybackMode, ShowAudioWave } from '../../../types/config';
 import LabelControlPair from '../../ui/LabelControlPair';
+import MaterialIcon from '../../ui/MaterialIcon';
 import SliderAlt from '../../ui/SliderAlt';
+import Tip from '../../ui/Tip';
 import VolumeSlider from '../../ui/VolumeSlider';
+import EqualizerDialog from './EqualizerDialog';
 
 const speedMarks = [
-  { value: 0.25 },
   { value: 0.5, label: '0.5x' },
   { value: 0.75 },
   { value: 1, label: '1x' },
@@ -56,6 +61,7 @@ const detuneMarks = [
 export default function Playback({ refs }: RefsProp) {
   const { t } = useTranslation();
   const [config, updateConfig] = useConfig();
+  const [eqOpen, setEqOpen] = useState(false);
 
   const addRef = useCallback(
     (key: string) => (el: HTMLElement | null) => {
@@ -158,6 +164,21 @@ export default function Playback({ refs }: RefsProp) {
       </div>
 
       <div>
+        <FormControlLabel
+          ref={addRef('balanceVolume')}
+          label={t('config.balanceVolume')}
+          control={
+            <Switch
+              checked={config.balanceVolume}
+              onChange={(_, val) => {
+                updateConfig({ balanceVolume: val });
+              }}
+            />
+          }
+        />
+      </div>
+
+      <div>
         <LabelControlPair
           ref={addRef('speed')}
           label={t('config.speed')}
@@ -174,7 +195,7 @@ export default function Playback({ refs }: RefsProp) {
                   })
                 }
                 step={null}
-                min={0.25}
+                min={0.5}
                 max={2}
                 marks={speedMarks}
                 valueLabelDisplay='auto'
@@ -221,6 +242,19 @@ export default function Playback({ refs }: RefsProp) {
           }
         />
         <FormHelperText>{t('config.detuneTip')}</FormHelperText>
+      </div>
+
+      <div>
+        <Button
+          ref={addRef('equalizer')}
+          variant='outlined'
+          fullWidth
+          startIcon={<MaterialIcon name='equalizer' />}
+          onClick={() => setEqOpen(true)}
+        >
+          {t('config.equalizer')}
+        </Button>
+        <EqualizerDialog open={eqOpen} onClose={() => setEqOpen(false)} />
       </div>
 
       {SUPPORT_SET_SINK_ID && (
@@ -322,6 +356,72 @@ export default function Playback({ refs }: RefsProp) {
               }
             />
           </div>
+
+          <div>
+            <FormControlLabel
+              ref={addRef('seekBySentence')}
+              label={t('config.seekBySentence')}
+              control={
+                <Switch
+                  checked={config.seekBySentence}
+                  onChange={(_, val) => {
+                    updateConfig({ seekBySentence: val });
+                  }}
+                />
+              }
+            />
+          </div>
+
+          <div>
+            <FormControlLabel
+              ref={addRef('replaceWholeQueue')}
+              label={t('config.replaceWholeQueue')}
+              control={
+                <Switch
+                  checked={config.replaceWholeQueue}
+                  onChange={(_, val) => {
+                    updateConfig({ replaceWholeQueue: val });
+                  }}
+                />
+              }
+            />
+          </div>
+
+          <LabelControlPair
+            label={t('config.playbackMode')}
+            ref={addRef('playbackMode')}
+            control={
+              <ToggleButtonGroup
+                fullWidth
+                color='primary'
+                size='small'
+                exclusive
+                value={config.playbackMode}
+                onChange={(_, val) => updateConfig({ playbackMode: val })}
+              >
+                <Tip title={t('config.noRepeat')}>
+                  <ToggleButton value={PlaybackMode.NoRepeat}>
+                    <MaterialIcon name='stop' />
+                  </ToggleButton>
+                </Tip>
+                <Tip title={t('config.repeatOne')}>
+                  <ToggleButton value={PlaybackMode.RepeatOne}>
+                    <MaterialIcon name='repeatOne' />
+                  </ToggleButton>
+                </Tip>
+                <Tip title={t('config.repeatQueue')}>
+                  <ToggleButton value={PlaybackMode.RepeatQueue}>
+                    <MaterialIcon name='repeat' />
+                  </ToggleButton>
+                </Tip>
+                <Tip title={t('config.shuffle')}>
+                  <ToggleButton value={PlaybackMode.Shuffle}>
+                    <MaterialIcon name='shuffle' />
+                  </ToggleButton>
+                </Tip>
+              </ToggleButtonGroup>
+            }
+          />
         </>
       )}
     </div>

@@ -50,6 +50,9 @@
     "fs:read-all",
     "fs:write-all",
     "fs:allow-watch",
-    "fs:allow-unwatch"
+    "fs:allow-unwatch",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text",
+    "clipboard-manager:allow-write-image"
   ]
 }

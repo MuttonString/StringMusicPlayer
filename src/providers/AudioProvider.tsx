@@ -1,3 +1,4 @@
+import replaygain from '@audio/loudness-replaygain';
 import { CircularProgress } from '@mui/material';
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
 import type { UnlistenFn } from '@tauri-apps/api/event';
@@ -20,6 +21,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import * as Tone from 'tone';
 import defaultCover from '../assets/cover.png';
+import { EQUALIZER } from '../constants/equalizer';
 import { SUPPORTED_AUDIO_EXT_LIST } from '../constants/file';
 import { IS_APPLE, IS_DESKTOP, SUPPORT_SET_SINK_ID } from '../constants/os';
 import {
@@ -42,6 +44,7 @@ import {
   getAudioDuration,
   getBasename,
   imgSrcToBlob,
+  removeExt,
   srcToPath,
 } from '../utils/data';
 import { fetchAlt } from '../utils/fetch';
@@ -50,13 +53,6 @@ import { useConfig } from './ConfigProvider';
 import { useSnackbar } from './SnackbarProvider';
 
 const isWindows = type() === 'windows';
-
-const removeExt = (name: string) => {
-  const splited = name.split('.');
-  if (splited.length === 1) return name;
-  splited.pop();
-  return splited.join('.');
-};
 
 const initVal: AudioProviderContext = {
   setLyric() {},
@@ -119,11 +115,26 @@ export function AudioProvider({ children }: ChildrenProp) {
     invoke('detach_media_control');
 
     const volume = new Tone.Volume(0).toDestination();
-    const player = new Tone.Player().connect(volume);
-    const grainPlayer = new Tone.GrainPlayer().connect(volume);
+    const replayGain = new Tone.Volume(0);
+
+    const filters = Array.from(
+      { length: EQUALIZER.length },
+      (_, i) => new Tone.Filter({ ...EQUALIZER[i], Q: Math.SQRT2 }),
+    );
+    for (let i = 1; i < EQUALIZER.length; i++) {
+      filters[i].connect(filters[i - 1]);
+    }
+
+    const player = new Tone.Player().connect(filters[9]);
+    const grainPlayer = new Tone.GrainPlayer({
+      grainSize: 0.1,
+      overlap: 0.05,
+    }).connect(filters[9]);
 
     toneRef.current = {
       volume,
+      replayGain,
+      filters,
       player,
       grainPlayer,
       activePlayer: player,
@@ -133,11 +144,12 @@ export function AudioProvider({ children }: ChildrenProp) {
       player.dispose();
       grainPlayer.dispose();
       volume.dispose();
+      replayGain.dispose();
     };
   }, []);
 
   useEffect(() => {
-    if (!isWindows || toneRef.current) return;
+    if (!isWindows || !toneRef.current) return;
 
     const updateThumbnailBtns = () => {
       invoke('update_buttons', {
@@ -198,8 +210,6 @@ export function AudioProvider({ children }: ChildrenProp) {
       tone.activePlayer = tone.grainPlayer;
       tone.grainPlayer.playbackRate = config.speed;
       tone.grainPlayer.detune = config.detune;
-      tone.grainPlayer.grainSize = 0.1 * config.speed;
-      tone.grainPlayer.overlap = 0.05 * config.speed;
       if (!pausedRef.current) {
         setTimeout(() =>
           tone.grainPlayer.start(
@@ -210,6 +220,29 @@ export function AudioProvider({ children }: ChildrenProp) {
       }
     }
   }, [config.detune, config.speed]);
+
+  // 音量平衡
+  useEffect(() => {
+    const tone = toneRef.current;
+    if (!tone) return;
+    if (config.balanceVolume) {
+      tone.replayGain.connect(tone.volume);
+      tone.filters[0].disconnect();
+      tone.filters[0].connect(tone.replayGain);
+    } else {
+      tone.replayGain.disconnect();
+      tone.filters[0].disconnect();
+      tone.filters[0].connect(tone.volume);
+    }
+  }, [config.balanceVolume]);
+
+  // 均衡器
+  useEffect(() => {
+    if (!toneRef.current) return;
+    for (let i = 0; i < EQUALIZER.length; i++) {
+      toneRef.current.filters[i].gain.value = config.equalizer[i];
+    }
+  }, [config.equalizer]);
 
   // 加载中
   useEffect(() => {
@@ -401,6 +434,7 @@ export function AudioProvider({ children }: ChildrenProp) {
     currTimeRef.current = 0;
     emit(BackendEvent.IsLoading, true);
     tone.activePlayer.stop();
+    tone.activePlayer.mute = true;
     if (!currSong?.src) return;
 
     const load = async () => {
@@ -419,9 +453,29 @@ export function AudioProvider({ children }: ChildrenProp) {
       const toneAudioBuffer = new Tone.ToneAudioBuffer(audioBuffer);
       tone.player.buffer = toneAudioBuffer;
       tone.grainPlayer.buffer = toneAudioBuffer;
+
+      const channels = Array.from(
+        { length: toneAudioBuffer.numberOfChannels },
+        (_, i) => toneAudioBuffer.getChannelData(i),
+      );
+      const gainRes = replaygain(channels, { fs: toneAudioBuffer.sampleRate });
+      if (gainRes) {
+        if (gainRes.peak * Math.pow(10, gainRes.gain / 20) <= 1) {
+          tone.replayGain.volume.value = gainRes.gain;
+        } else {
+          tone.replayGain.volume.value = Tone.gainToDb(1 / gainRes.peak);
+        }
+      } else {
+        tone.replayGain.volume.value = 0;
+      }
+      console.info(
+        `Replay gain: ${toneRef.current!.replayGain.volume.value} db.`,
+      );
+
       if (!pausedRef.current) {
         await Tone.start();
-        toneRef.current!.activePlayer.start(Tone.now(), 0);
+        tone.activePlayer.start(Tone.now(), 0);
+        tone.activePlayer.mute = false;
       }
     };
 
@@ -599,8 +653,8 @@ export function AudioProvider({ children }: ChildrenProp) {
         if (duration === undefined) {
           console.info(`Seek forward ${duration}s.`);
           position =
-            (lyric.find((item) => item.start > currTimeRef.current)?.start ||
-              Infinity) - config.replayDelay;
+            lyric.find((item) => item.start > currTimeRef.current)?.start ||
+            Infinity;
         } else {
           console.info('Seek forward one sentence.');
           position = currTimeRef.current + duration;
@@ -612,7 +666,7 @@ export function AudioProvider({ children }: ChildrenProp) {
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [config.replayDelay, config.seekBySentence, lyric]);
+  }, [config.seekBySentence, lyric]);
 
   // 向后
   useEffect(() => {
@@ -630,7 +684,7 @@ export function AudioProvider({ children }: ChildrenProp) {
           position =
             lyric[
               lyric.findIndex((item) => item.start <= currTimeRef.current) + 1
-            ].start - config.replayDelay;
+            ].start;
         } else {
           console.info('Seek forward one sentence.');
           position = currTimeRef.current - duration;
@@ -642,7 +696,7 @@ export function AudioProvider({ children }: ChildrenProp) {
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [config.replayDelay, config.seekBySentence, lyric]);
+  }, [config.seekBySentence, lyric]);
 
   // 跳转
   useEffect(() => {

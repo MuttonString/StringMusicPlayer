@@ -1,16 +1,15 @@
 import {
-  Button,
   Divider,
+  IconButton,
   LinearProgress,
-  ListItemButton,
+  Menu,
+  MenuItem,
   SwipeableDrawer,
 } from '@mui/material';
 import type { ReactVirtualizer } from '@tanstack/react-virtual';
 import { emit } from '@tauri-apps/api/event';
-import classNames from 'classnames';
 import type { RefObject } from 'react';
 import {
-  Fragment,
   useCallback,
   useDeferredValue,
   useEffect,
@@ -20,34 +19,35 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../../app/i18n';
-import defaultCover from '../../../assets/thumbnail.png';
 import { DIALOG_LEVAING_MS } from '../../../constants/animation';
 import { IS_APPLE } from '../../../constants/os';
 import { useScrollKeyPressed } from '../../../hooks/useScrollKeyPressed';
 import { useAudio } from '../../../providers/AudioProvider';
 import { useConfig } from '../../../providers/ConfigProvider';
+import type { Song } from '../../../types/audio';
 import type { DialogBaseProps } from '../../../types/component';
 import { PlaybackMode } from '../../../types/config';
 import type { UpdateQueuePayload } from '../../../types/event';
 import { BackendEvent } from '../../../types/event';
 import { KeyCode } from '../../../types/keyCode';
-import { formatTime } from '../../../utils/data';
 import delay from '../../../utils/delay';
 import InputWithClear from '../../ui/InputWithClear';
 import MaterialIcon from '../../ui/MaterialIcon';
-import SwipeableListItem from '../../ui/SwipeableListItem';
 import Tip from '../../ui/Tip';
 import VirtualizedList from '../../ui/VirtualizedList';
+import PlayQueueItem from './PlayQueueItem';
 
 interface Props extends DialogBaseProps {
   onOpen: () => void;
+  infoDialogRef: RefObject<(src: string) => void>;
 }
 
-export default function PlayQueue({ open, onClose, onOpen }: Props) {
+export default function PlayQueue(props: Props) {
+  const { open, onClose, onOpen, infoDialogRef } = props;
   const { t } = useTranslation();
   const langs = i18n.languages;
   const [config] = useConfig();
-  const { playQueue, currIdx } = useAudio();
+  const { playQueue, currIdx, paused } = useAudio();
   const [search, setSearch] = useState('');
   const delayedSearch = useDeferredValue(search);
   const [selected, setSelected] = useState<string[]>([]);
@@ -56,6 +56,7 @@ export default function PlayQueue({ open, onClose, onOpen }: Props) {
     useRef<
       [ReactVirtualizer<HTMLUListElement, Element>, RefObject<HTMLUListElement>]
     >(null);
+  const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null);
 
   const loadedCnt = useMemo(
     () => playQueue.filter((item) => item.metadataLoaded).length,
@@ -74,7 +75,7 @@ export default function PlayQueue({ open, onClose, onOpen }: Props) {
     setTimeout(() => {
       if (!listRef.current) return;
       listRef.current[0].scrollToIndex(currIdx, {
-        align: 'start',
+        align: 'center',
         behavior: 'instant',
       });
     }, config.animationDuration * DIALOG_LEVAING_MS);
@@ -156,6 +157,23 @@ export default function PlayQueue({ open, onClose, onOpen }: Props) {
     listRef.current?.[0],
   );
 
+  const sortQueue = useCallback(
+    (compareFn?: (a: Song, b: Song) => number) => {
+      setAnchor(null);
+      const queue = [...playQueue].sort(
+        (a, b) =>
+          compareFn?.(a, b) ||
+          a.title.localeCompare(b.title, i18n.languages) ||
+          a.src.localeCompare(b.src),
+      );
+      emit<UpdateQueuePayload>(BackendEvent.UpdateQueue, {
+        newQueue: queue,
+        newIndex: queue.findIndex((item) => item.src === currSrc),
+      });
+    },
+    [currSrc, playQueue],
+  );
+
   return (
     <SwipeableDrawer
       open={open}
@@ -165,16 +183,25 @@ export default function PlayQueue({ open, onClose, onOpen }: Props) {
       anchor='right'
       onKeyDown={(e) => {
         onKeyDown(e);
-        if (
-          !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName) &&
-          e.key === (IS_APPLE ? KeyCode.Backspace : KeyCode.Del)
-        ) {
+        if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
+          return;
+        }
+        if (e.key === (IS_APPLE ? KeyCode.Backspace : KeyCode.Del)) {
           removeSelected();
         } else if (
           (IS_APPLE ? e.metaKey : e.ctrlKey) &&
           e.key.toLowerCase() === 'a'
         ) {
-          setSelected(playQueue.map((item) => item.src));
+          if (e.shiftKey) {
+            const selectedSet = new Set(selected);
+            setSelected(
+              filtered
+                .map((item) => item.src)
+                .filter((item) => !selectedSet.has(item)),
+            );
+          } else {
+            setSelected(filtered.map((item) => item.src));
+          }
         }
       }}
     >
@@ -188,30 +215,144 @@ export default function PlayQueue({ open, onClose, onOpen }: Props) {
             onChange={(e) => setSearch(e.target.value)}
             onClear={() => setSearch('')}
           />
-          <div className='flex items-center justify-between mt-1'>
-            <div className='text-text-secondary text-sm'>
+
+          <div className='flex items-center justify-between mt-1 -ms-1.5'>
+            <div className='flex items-center'>
+              <Tip
+                title={
+                  t('media.reverseSelect') +
+                  ' ' +
+                  (IS_APPLE ? '⌘⇧A' : '(Ctrl+Shift+A)')
+                }
+              >
+                <IconButton
+                  size='small'
+                  onClick={() => {
+                    const selectedSet = new Set(selected);
+                    setSelected(
+                      filtered
+                        .map((item) => item.src)
+                        .filter((item) => !selectedSet.has(item)),
+                    );
+                  }}
+                >
+                  <MaterialIcon fontSize='small' name='selectAll' />
+                </IconButton>
+              </Tip>
+
+              <Tip title={t('media.reorder')}>
+                <IconButton
+                  size='small'
+                  onClick={(e) => setAnchor(e.currentTarget)}
+                >
+                  <MaterialIcon fontSize='small' name='reorder' />
+                </IconButton>
+              </Tip>
+
+              <Menu
+                anchorEl={anchor}
+                open={!!anchor}
+                onClose={() => setAnchor(null)}
+              >
+                <MenuItem onClick={() => sortQueue()}>
+                  {t('media.byTitle')}
+                </MenuItem>
+                <MenuItem
+                  onClick={() =>
+                    sortQueue((a, b) =>
+                      (
+                        a.artists?.map((item) => item.label).join() || ''
+                      ).localeCompare(
+                        b.artists?.map((item) => item.label).join() || '',
+                        i18n.languages,
+                      ),
+                    )
+                  }
+                >
+                  {t('media.byArtist')}
+                </MenuItem>
+                <MenuItem
+                  onClick={() =>
+                    sortQueue((a, b) =>
+                      (a.album?.label || '').localeCompare(
+                        b.album?.label || '',
+                        i18n.languages,
+                      ),
+                    )
+                  }
+                >
+                  {t('media.byAlbum')}
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setAnchor(null);
+                    const queue = [...playQueue].reverse();
+                    emit<UpdateQueuePayload>(BackendEvent.UpdateQueue, {
+                      newQueue: queue,
+                      newIndex: queue.findIndex((item) => item.src === currSrc),
+                    });
+                  }}
+                >
+                  {t('media.reverseOrder')}
+                </MenuItem>
+              </Menu>
+
+              <div className='bg-divider w-px h-5' />
+
+              <Tip
+                title={t('media.addToPlaylist')}
+                disabled={selected.length === 0}
+              >
+                <IconButton
+                  size='small'
+                  disabled={selected.length === 0}
+                  onClick={() => {}}
+                >
+                  <MaterialIcon fontSize='small' name='playlistAdd' />
+                </IconButton>
+              </Tip>
+
+              <Tip title={t('media.download')} disabled={selected.length === 0}>
+                <IconButton
+                  size='small'
+                  disabled={selected.length === 0}
+                  onClick={() => {}}
+                >
+                  <MaterialIcon fontSize='small' name='download' />
+                </IconButton>
+              </Tip>
+
+              <Tip
+                title={t('media.remove') + (IS_APPLE ? ' ⌫' : ' (Del)')}
+                disabled={selected.length === 0}
+              >
+                <IconButton
+                  size='small'
+                  disabled={selected.length === 0}
+                  onClick={() => {
+                    if (
+                      selected.length &&
+                      selected.length !== playQueue.length
+                    ) {
+                      removeSelected();
+                    } else {
+                      removeAll();
+                    }
+                  }}
+                >
+                  <MaterialIcon fontSize='small' name='delete' />
+                </IconButton>
+              </Tip>
+            </div>
+
+            <div>
               {selected.length
                 ? t('media.selected', {
-                    selected: selected.length,
                     count: filtered.length,
+                    selected: selected.length,
                   })
                 : t('media.total', { count: filtered.length })}
             </div>
-            <Button
-              size='small'
-              className='[&>.MuiButton-startIcon]:me-0.5!'
-              startIcon={<MaterialIcon name='delete' />}
-              disabled={filtered.length === 0}
-              onClick={() => {
-                if (selected.length && selected.length !== playQueue.length) {
-                  removeSelected();
-                } else {
-                  removeAll();
-                }
-              }}
-            >
-              {t(selected.length ? 'media.removeSelected' : 'media.removeAll')}
-            </Button>
           </div>
         </div>
 
@@ -222,7 +363,7 @@ export default function PlayQueue({ open, onClose, onOpen }: Props) {
             variant='determinate'
             value={loadedCnt}
             max={playQueue.length}
-            className='h-0.5! -mb-px'
+            className='h-px!'
           />
         )}
 
@@ -233,178 +374,91 @@ export default function PlayQueue({ open, onClose, onOpen }: Props) {
           items={filtered}
           rowHeight={52}
           getItemKey={(item) => item.src}
-          rowRender={(row) => {
-            return (
-              <SwipeableListItem
-                onSelect={() => {
+          rowRender={(row) => (
+            <PlayQueueItem
+              row={row}
+              infoDialogRef={infoDialogRef}
+              selected={selected.includes(row.src)}
+              onSelect={() => {
+                const exists = selected.includes(row.src);
+                setSelected(
+                  exists
+                    ? selected.filter((item) => item !== row.src)
+                    : [row.src, ...selected],
+                );
+              }}
+              onDelete={async () => {
+                if (playQueue.length === 1) {
+                  removeAll();
+                } else {
+                  const newQueue = playQueue.filter(
+                    (item) => item.src !== row.src,
+                  );
+                  const newIndex = newQueue.findIndex(
+                    (item) => item.src === currSrc,
+                  );
+                  await emit<UpdateQueuePayload>(BackendEvent.UpdateQueue, {
+                    newQueue,
+                    newIndex:
+                      newIndex === -1
+                        ? config.playbackMode === PlaybackMode.Shuffle
+                          ? Math.floor(Math.random() * newQueue.length)
+                          : 0
+                        : newIndex,
+                  });
+                  setSelected(selected.filter((item) => item !== row.src));
+                }
+              }}
+              onClick={(e) => {
+                // 多选
+                e.stopPropagation();
+                if (e.shiftKey) {
+                  const start = Math.max(
+                    0,
+                    filtered.findIndex((item) => item.src === selected[0]),
+                  );
+                  const end = filtered.findIndex(
+                    (item) => item.src === row.src,
+                  );
+                  if (end >= start) {
+                    setSelected(
+                      filtered.slice(start, end + 1).map((item) => item.src),
+                    );
+                  } else {
+                    setSelected(
+                      filtered
+                        .slice(end, start + 1)
+                        .reverse()
+                        .map((item) => item.src),
+                    );
+                  }
+                } else if (IS_APPLE ? e.metaKey : e.ctrlKey) {
                   const exists = selected.includes(row.src);
                   setSelected(
                     exists
                       ? selected.filter((item) => item !== row.src)
                       : [row.src, ...selected],
                   );
-                }}
-                onDelete={async () => {
-                  if (playQueue.length === 1) {
-                    removeAll();
-                  } else {
-                    const newQueue = playQueue.filter(
-                      (item) => item.src !== row.src,
-                    );
-                    const newIndex = newQueue.findIndex(
-                      (item) => item.src === currSrc,
-                    );
-                    await emit<UpdateQueuePayload>(BackendEvent.UpdateQueue, {
-                      newQueue,
-                      newIndex:
-                        newIndex === -1
-                          ? config.playbackMode === PlaybackMode.Shuffle
-                            ? Math.floor(Math.random() * newQueue.length)
-                            : 0
-                          : newIndex,
-                    });
-                    setSelected(selected.filter((item) => item !== row.src));
-                  }
-                }}
-              >
-                <ListItemButton
-                  selected={selected.includes(row.src)}
-                  className='ms-2! me-2! ps-2! pe-2! w-[calc(100%-1rem)]'
-                  onClick={(e) => {
-                    // 多选
-                    e.stopPropagation();
-                    if (e.shiftKey) {
-                      const start = Math.max(
-                        0,
-                        filtered.findIndex((item) => item.src === selected[0]),
-                      );
-                      const end = filtered.findIndex(
-                        (item) => item.src === row.src,
-                      );
-                      if (end >= start) {
-                        setSelected(
-                          filtered
-                            .slice(start, end + 1)
-                            .map((item) => item.src),
-                        );
-                      } else {
-                        setSelected(
-                          filtered
-                            .slice(end, start + 1)
-                            .reverse()
-                            .map((item) => item.src),
-                        );
-                      }
-                    } else if (IS_APPLE ? e.metaKey : e.ctrlKey) {
-                      const exists = selected.includes(row.src);
-                      setSelected(
-                        exists
-                          ? selected.filter((item) => item !== row.src)
-                          : [row.src, ...selected],
-                      );
-                    } else {
-                      setSelected([row.src]);
-                    }
-                  }}
-                  onDoubleClick={() => {
-                    emit<UpdateQueuePayload>(BackendEvent.UpdateQueue, {
-                      newIndex: playQueue.findIndex(
-                        (item) => item.src === row.src,
-                      ),
-                    });
-                    setSelected([]);
-                  }}
-                >
-                  <div className='flex gap-2 w-full'>
-                    {/* 封面 */}
-                    <img
-                      alt=''
-                      className='h-11 w-11 object-cover object-center rounded-lg'
-                      src={row.cover?.[1] || defaultCover}
-                      onError={(e) => {
-                        e.currentTarget.src = defaultCover;
-                      }}
-                    />
-
-                    <div className='flex flex-col w-full max-w-[calc(100%-3.25rem)]'>
-                      {/* 标题 */}
-                      <Tip
-                        placement='top'
-                        title={
-                          <div className='flex flex-col'>
-                            <div>{row.title}</div>
-                            {row.translation && (
-                              <div className='opacity-70'>
-                                ({row.translation})
-                              </div>
-                            )}
-                          </div>
-                        }
-                      >
-                        <div className='w-fit max-w-full'>
-                          <div
-                            className={classNames(
-                              'truncate',
-                              row.src === currSrc && 'text-primary font-bold',
-                            )}
-                          >
-                            {row.title}
-                          </div>
-                          {row.translation && (
-                            <div className='ms-2 truncate font-bold text-text-secondary'>
-                              ({row.translation})
-                            </div>
-                          )}
-                        </div>
-                      </Tip>
-
-                      <div
-                        className={classNames(
-                          'flex justify-between text-sm',
-                          row.src === currSrc
-                            ? 'text-primary'
-                            : 'text-text-secondary',
-                        )}
-                      >
-                        {/* 艺术家 */}
-                        <div className='flex max-w-[calc(100%-2.5rem)]'>
-                          {!!row.artists?.length &&
-                            row.artists.map((item, idx, arr) => (
-                              <Fragment key={idx}>
-                                <Tip
-                                  title={
-                                    <div className='flex flex-col'>
-                                      <div>{item.label}</div>
-                                      {item.translation && (
-                                        <div className='opacity-70'>
-                                          ({item.translation})
-                                        </div>
-                                      )}
-                                    </div>
-                                  }
-                                >
-                                  <div className='truncate'>{item.label}</div>
-                                </Tip>
-                                {idx !== arr.length - 1 && (
-                                  <div className='me-1'>;</div>
-                                )}
-                              </Fragment>
-                            ))}
-                        </div>
-
-                        {/* 时长 */}
-                        {row.duration !== undefined && (
-                          <div className='w-10 text-end'>
-                            {formatTime(Math.floor(row.duration))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </ListItemButton>
-              </SwipeableListItem>
-            );
-          }}
+                } else {
+                  setSelected([row.src]);
+                }
+              }}
+              onDoubleClick={async () => {
+                setSelected([]);
+                if (currSrc === row.src) {
+                  if (paused) emit(BackendEvent.Play);
+                  else emit(BackendEvent.Pause);
+                } else {
+                  await emit<UpdateQueuePayload>(BackendEvent.UpdateQueue, {
+                    newIndex: playQueue.findIndex(
+                      (item) => item.src === row.src,
+                    ),
+                  });
+                  if (paused) emit(BackendEvent.Play);
+                }
+              }}
+            />
+          )}
         />
       </div>
     </SwipeableDrawer>

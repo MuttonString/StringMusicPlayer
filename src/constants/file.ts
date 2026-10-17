@@ -11,6 +11,16 @@ export const IMAGE_FILE_FILTER = [
   { name: 'AVIF', extensions: ['avif'] },
 ];
 
+export const IMAGE_FILE_MIME_MAP = {
+  'image/apng': '.apng',
+  'image/avif': '.avif',
+  'image/gif': '.gif',
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'image/bmp': '.bmp',
+} as const;
+
 export const SUPPORTED_AUDIO_FORMAT = (() => {
   const audio = new Audio();
   return [

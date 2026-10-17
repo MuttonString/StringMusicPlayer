@@ -51,7 +51,7 @@ export default function Home() {
   return (
     <div className='flex h-full items-center justify-center'>
       <div className='flex flex-col min-w-50 gap-2'>
-        <Typography variant='h4' className='ps-2.75'>
+        <Typography color='textPrimary' variant='h4' className='ps-2.75'>
           {t('home.welcome')}
         </Typography>
         <Typography
