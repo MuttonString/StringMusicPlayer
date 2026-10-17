@@ -19,6 +19,9 @@ const listenDevKey = (e: KeyboardEvent) => {
     (primaryKey && e.shiftKey && e.key.toLowerCase() === 'i') ||
     e.key === 'F12'
   ) {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    e.stopPropagation();
     invoke('open_devtools');
   } else if ((primaryKey && e.key.toLowerCase() === 'r') || e.key === 'F5') {
     location.reload();

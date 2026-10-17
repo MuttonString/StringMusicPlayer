@@ -22,8 +22,7 @@ pub struct Metadata<'a> {
 
 impl MediaControlManager {
     pub fn new(app_handle: AppHandle) -> Result<Self, ()> {
-        let app_handle = app_handle.clone();
-
+        let _app_handle = app_handle.clone();
         #[cfg(not(target_os = "windows"))]
         let hwnd = None;
 
@@ -31,7 +30,7 @@ impl MediaControlManager {
         let hwnd = {
             use tauri::Manager;
 
-            let hwnd = app_handle
+            let hwnd = _app_handle
                 .get_webview_window("main")
                 .unwrap()
                 .hwnd()

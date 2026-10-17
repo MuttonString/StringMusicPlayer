@@ -4,9 +4,12 @@ import { KeyCode } from '../types/keyCode';
 window.addEventListener(
   'keydown',
   (e) => {
+    console.log(e.metaKey || e.ctrlKey, e.shiftKey || e.altKey, e.key);
     // DevTools
     if (
-      ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'i') ||
+      ((e.metaKey || e.ctrlKey) &&
+        (e.shiftKey || e.altKey) &&
+        ['i', 'I', '^'].includes(e.key)) ||
       e.key === 'F12'
     ) {
       e.preventDefault();

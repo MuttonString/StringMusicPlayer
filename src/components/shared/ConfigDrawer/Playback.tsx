@@ -356,74 +356,74 @@ export default function Playback({ refs }: RefsProp) {
               }
             />
           </div>
-
-          <div>
-            <FormControlLabel
-              ref={addRef('seekBySentence')}
-              label={t('config.seekBySentence')}
-              control={
-                <Switch
-                  checked={config.seekBySentence}
-                  onChange={(_, val) => {
-                    updateConfig({ seekBySentence: val });
-                  }}
-                />
-              }
-            />
-          </div>
-
-          <div>
-            <FormControlLabel
-              ref={addRef('replaceWholeQueue')}
-              label={t('config.replaceWholeQueue')}
-              control={
-                <Switch
-                  checked={config.replaceWholeQueue}
-                  onChange={(_, val) => {
-                    updateConfig({ replaceWholeQueue: val });
-                  }}
-                />
-              }
-            />
-          </div>
-
-          <LabelControlPair
-            label={t('config.playbackMode')}
-            ref={addRef('playbackMode')}
-            control={
-              <ToggleButtonGroup
-                fullWidth
-                color='primary'
-                size='small'
-                exclusive
-                value={config.playbackMode}
-                onChange={(_, val) => updateConfig({ playbackMode: val })}
-              >
-                <Tip title={t('config.noRepeat')}>
-                  <ToggleButton value={PlaybackMode.NoRepeat}>
-                    <MaterialIcon name='stop' />
-                  </ToggleButton>
-                </Tip>
-                <Tip title={t('config.repeatOne')}>
-                  <ToggleButton value={PlaybackMode.RepeatOne}>
-                    <MaterialIcon name='repeatOne' />
-                  </ToggleButton>
-                </Tip>
-                <Tip title={t('config.repeatQueue')}>
-                  <ToggleButton value={PlaybackMode.RepeatQueue}>
-                    <MaterialIcon name='repeat' />
-                  </ToggleButton>
-                </Tip>
-                <Tip title={t('config.shuffle')}>
-                  <ToggleButton value={PlaybackMode.Shuffle}>
-                    <MaterialIcon name='shuffle' />
-                  </ToggleButton>
-                </Tip>
-              </ToggleButtonGroup>
-            }
-          />
         </>
       )}
+
+      <div>
+        <FormControlLabel
+          ref={addRef('seekBySentence')}
+          label={t('config.seekBySentence')}
+          control={
+            <Switch
+              checked={config.seekBySentence}
+              onChange={(_, val) => {
+                updateConfig({ seekBySentence: val });
+              }}
+            />
+          }
+        />
+      </div>
+
+      <div>
+        <FormControlLabel
+          ref={addRef('replaceWholeQueue')}
+          label={t('config.replaceWholeQueue')}
+          control={
+            <Switch
+              checked={config.replaceWholeQueue}
+              onChange={(_, val) => {
+                updateConfig({ replaceWholeQueue: val });
+              }}
+            />
+          }
+        />
+      </div>
+
+      <LabelControlPair
+        label={t('config.playbackMode')}
+        ref={addRef('playbackMode')}
+        control={
+          <ToggleButtonGroup
+            fullWidth
+            color='primary'
+            size='small'
+            exclusive
+            value={config.playbackMode}
+            onChange={(_, val) => updateConfig({ playbackMode: val })}
+          >
+            <Tip title={t('config.noRepeat')}>
+              <ToggleButton value={PlaybackMode.NoRepeat}>
+                <MaterialIcon name='stop' />
+              </ToggleButton>
+            </Tip>
+            <Tip title={t('config.repeatOne')}>
+              <ToggleButton value={PlaybackMode.RepeatOne}>
+                <MaterialIcon name='repeatOne' />
+              </ToggleButton>
+            </Tip>
+            <Tip title={t('config.repeatQueue')}>
+              <ToggleButton value={PlaybackMode.RepeatQueue}>
+                <MaterialIcon name='repeat' />
+              </ToggleButton>
+            </Tip>
+            <Tip title={t('config.shuffle')}>
+              <ToggleButton value={PlaybackMode.Shuffle}>
+                <MaterialIcon name='shuffle' />
+              </ToggleButton>
+            </Tip>
+          </ToggleButtonGroup>
+        }
+      />
     </div>
   );
 }

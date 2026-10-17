@@ -61,7 +61,7 @@ export default function Cover({ useShortcutKeyReturnValue }: Props) {
   useAnimationFrame((_, delta) => {
     if (!config.coverRotation || media.paused || media.pending) return;
     const increment = delta * rotationSpeed;
-    rotation.set((rotation.get() + increment + 360) % 360);
+    rotation.set((rotation.get() + increment) % 360);
   });
 
   useEffect(() => {

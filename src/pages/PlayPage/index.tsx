@@ -122,10 +122,10 @@ export default function PlayPage({ open, onClose }: Props) {
               data-tauri-drag-region
               className={classNames(
                 'w-full h-(--title-bar-height) flex items-center',
-                IS_APPLE && 'flex-row-reverse',
+                IS_APPLE && 'ms-18',
               )}
             >
-              <Tip title={t('playPage.back' + ' ' + closeKey)}>
+              <Tip title={t('playPage.back') + ' ' + closeKey}>
                 <IconButton
                   aria-label={t('playPage.back')}
                   color='inherit'
