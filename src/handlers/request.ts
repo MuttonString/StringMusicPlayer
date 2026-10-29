@@ -15,7 +15,7 @@ export async function fetchWithCache(
   options: RequestInit,
   key: string,
 ) {
-  const cache = await caches.open('muttonstring.string-music');
+  const cache = await caches.open('muttonstring.string-music-player');
 
   // 清理过期缓存
   const expList = await cache.match('expList');
@@ -132,7 +132,7 @@ export async function parseJpnText(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        id: 'StringMusic',
+        id: 'StringMusicPlayer',
         jsonrpc: '2.0',
         method: 'jlp.maservice.parse',
         params: { q: text },

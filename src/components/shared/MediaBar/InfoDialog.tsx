@@ -16,6 +16,7 @@ import { parseWebStream, selectCover } from 'music-metadata';
 import type { RefObject } from 'react';
 import { useCallback, useImperativeHandle, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../../app/i18n';
 import {
   IMAGE_FILE_FILTER,
   IMAGE_FILE_MIME_MAP,
@@ -169,6 +170,13 @@ export default function InfoDialog({ ref }: Props) {
     [t],
   );
 
+  const lang = i18n.languages;
+  const formatNum = useCallback(
+    (num: number) =>
+      new Intl.NumberFormat(lang, { maximumFractionDigits: 2 }).format(num),
+    [lang],
+  );
+
   return (
     <DialogTemplate
       open={open}
@@ -185,7 +193,9 @@ export default function InfoDialog({ ref }: Props) {
                 src={detail.cover.url}
               />
               <div className='flex flex-col justify-between'>
-                <div className='ms-1.5 font-bold'>{detail.title}</div>
+                <div className='ms-1.5 font-bold'>
+                  <bdi dir='auto'>{detail.title}</bdi>
+                </div>
                 <div className='flex flex-col -mb-2 w-fit'>
                   {IS_DESKTOP && (
                     <Button
@@ -218,7 +228,9 @@ export default function InfoDialog({ ref }: Props) {
               </div>
             </div>
           ) : (
-            <div className='font-bold'>{detail.title}</div>
+            <div className='font-bold'>
+              <bdi dir='auto'>{detail.title}</bdi>
+            </div>
           )}
 
           <Table size='small' sx={{ tableLayout: 'fixed' }}>
@@ -238,6 +250,7 @@ export default function InfoDialog({ ref }: Props) {
                     detail.src
                   ) : (
                     <Button
+                      dir='ltr'
                       className='text-start p-0!'
                       onClick={() => {
                         if (/^https?:\/\//i.test(detail.src)) {
@@ -276,42 +289,54 @@ export default function InfoDialog({ ref }: Props) {
                 <TableCell component='th' variant='head'>
                   {t('infoDialog.artists')}
                 </TableCell>
-                <TableCell>{detail.artists?.join('; ') || '-'}</TableCell>
+                <TableCell>
+                  <bdi dir='auto'>{detail.artists?.join('; ') || '-'}</bdi>
+                </TableCell>
               </TableRow>
 
               <TableRow>
                 <TableCell component='th' variant='head'>
                   {t('infoDialog.album')}
                 </TableCell>
-                <TableCell>{detail.album || '-'}</TableCell>
+                <TableCell>
+                  <bdi dir='auto'>{detail.album || '-'}</bdi>
+                </TableCell>
               </TableRow>
 
               <TableRow>
                 <TableCell component='th' variant='head'>
                   {t('infoDialog.albumArtists')}
                 </TableCell>
-                <TableCell>{detail.albumArtists?.join('; ') || '-'}</TableCell>
+                <TableCell>
+                  <bdi dir='auto'>{detail.albumArtists?.join('; ') || '-'}</bdi>
+                </TableCell>
               </TableRow>
 
               <TableRow>
                 <TableCell component='th' variant='head'>
                   {t('infoDialog.container')}
                 </TableCell>
-                <TableCell>{detail.container || '-'}</TableCell>
+                <TableCell>
+                  <bdi dir='auto'>{detail.container || '-'}</bdi>
+                </TableCell>
               </TableRow>
 
               <TableRow>
                 <TableCell component='th' variant='head'>
                   {t('infoDialog.codec')}
                 </TableCell>
-                <TableCell>{detail.codec || '-'}</TableCell>
+                <TableCell>
+                  <bdi dir='auto'>{detail.codec || '-'}</bdi>
+                </TableCell>
               </TableRow>
 
               <TableRow>
                 <TableCell component='th' variant='head'>
                   {t('infoDialog.codecProfile')}
                 </TableCell>
-                <TableCell>{detail.codecProfile || '-'}</TableCell>
+                <TableCell>
+                  <bdi dir='auto'>{detail.codecProfile || '-'}</bdi>
+                </TableCell>
               </TableRow>
 
               <TableRow>
@@ -319,7 +344,7 @@ export default function InfoDialog({ ref }: Props) {
                   {t('infoDialog.duration')}
                 </TableCell>
                 <TableCell>
-                  {`${formatTime(detail.duration)} (${detail.duration.toFixed(2)} s)`}
+                  <bdi dir='ltr'>{`${formatTime(detail.duration)} (${formatNum(detail.duration)} s)`}</bdi>
                 </TableCell>
               </TableRow>
 
@@ -328,9 +353,11 @@ export default function InfoDialog({ ref }: Props) {
                   {t('infoDialog.bitrate')}
                 </TableCell>
                 <TableCell>
-                  {detail.bitrate === undefined
-                    ? '-'
-                    : detail.bitrate / 1000 + ' kbps'}
+                  <bdi dir='ltr'>
+                    {detail.bitrate === undefined
+                      ? '-'
+                      : formatNum(detail.bitrate / 1000) + ' kbps'}
+                  </bdi>
                 </TableCell>
               </TableRow>
 
@@ -339,9 +366,11 @@ export default function InfoDialog({ ref }: Props) {
                   {t('infoDialog.sampleRate')}
                 </TableCell>
                 <TableCell>
-                  {detail.sampleRate === undefined
-                    ? '-'
-                    : detail.sampleRate / 1000 + ' kHz'}
+                  <bdi dir='ltr'>
+                    {detail.sampleRate === undefined
+                      ? '-'
+                      : formatNum(detail.sampleRate / 1000) + ' kHz'}
+                  </bdi>
                 </TableCell>
               </TableRow>
 
@@ -350,9 +379,11 @@ export default function InfoDialog({ ref }: Props) {
                   {t('infoDialog.bitsPerSample')}
                 </TableCell>
                 <TableCell>
-                  {detail.bitsPerSample === undefined
-                    ? '-'
-                    : detail.bitsPerSample + ' bit'}
+                  <bdi dir='ltr'>
+                    {detail.bitsPerSample === undefined
+                      ? '-'
+                      : detail.bitsPerSample + ' bit'}
+                  </bdi>
                 </TableCell>
               </TableRow>
 

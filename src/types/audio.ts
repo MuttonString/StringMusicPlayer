@@ -8,7 +8,6 @@ export interface AudioProviderContext {
   playQueue: Song[];
   paused: boolean;
   pending: boolean;
-  currentTime: number;
   lyric: LyricSentence[];
   setLyric: (lyric: LyricSentence[]) => void;
   currBuffer?: ArrayBuffer;

@@ -51,7 +51,7 @@ export default function Footer() {
 
   return (
     <motion.footer
-      className='w-full bg-(--bg-color) overlay-1 border-t border-divider flex ps-2! pe-2!'
+      className='w-full bg-(--bg-color) overlay-1 border-t border-divider flex ps-2! pe-2! gap-2'
       variants={VERTICAL}
       custom='2rem'
       initial='hidden'
@@ -59,6 +59,7 @@ export default function Footer() {
       exit='hidden'
     >
       <InputBase
+        dir='ltr'
         fullWidth
         value={input}
         onChange={(e) => setInput(e.target.value)}
@@ -69,60 +70,62 @@ export default function Footer() {
         }}
       />
 
-      <Tip title={t('footer.refresh') + ' ' + (IS_APPLE ? '⌘R' : '(Ctrl+R)')}>
-        <IconButton
-          aria-label={t('footer.refresh')}
-          size='small'
-          onClick={() => window.location.reload()}
-        >
-          <MaterialIcon name='refresh' fontSize='small' />
-        </IconButton>
-      </Tip>
-
-      <Tip title={t('footer.visionSim')}>
-        <IconButton
-          size='small'
-          onClick={(e) => setVisionSimAnchor(e.currentTarget)}
-        >
-          <MaterialIcon name='visibility' fontSize='small' />
-        </IconButton>
-      </Tip>
-      <FiltersSvg style={{ display: 'none' }} />
-      <Menu
-        open={!!visionSimAnchor}
-        onClose={() => setVisionSimAnchor(null)}
-        anchorEl={visionSimAnchor}
-      >
-        {visionSimItems.map((item) => (
-          <MenuItem
-            key={item.id}
-            selected={item.id === document.documentElement.style.filter}
-            onClick={() => {
-              setVisionSimAnchor(null);
-              if (item.id) document.documentElement.style.filter = item.id;
-              else document.documentElement.style = '';
-            }}
-          >
-            {item.label}
-          </MenuItem>
-        ))}
-      </Menu>
-
-      {IS_DESKTOP && (
-        <Tip
-          title={
-            t('footer.devtools') + ' ' + (IS_APPLE ? '⌘⇧I' : '(Ctrl+Shift+I)')
-          }
-        >
+      <div className='flex'>
+        <Tip title={t('footer.refresh') + ' ' + (IS_APPLE ? '⌘R' : '(Ctrl+R)')}>
           <IconButton
-            aria-label={t('footer.devtools')}
+            aria-label={t('footer.refresh')}
             size='small'
-            onClick={() => invoke('open_devtools')}
+            onClick={() => window.location.reload()}
           >
-            <MaterialIcon name='code' fontSize='small' />
+            <MaterialIcon name='refresh' fontSize='small' />
           </IconButton>
         </Tip>
-      )}
+
+        <Tip title={t('footer.visionSim')}>
+          <IconButton
+            size='small'
+            onClick={(e) => setVisionSimAnchor(e.currentTarget)}
+          >
+            <MaterialIcon name='visibility' fontSize='small' />
+          </IconButton>
+        </Tip>
+        <FiltersSvg style={{ display: 'none' }} />
+        <Menu
+          open={!!visionSimAnchor}
+          onClose={() => setVisionSimAnchor(null)}
+          anchorEl={visionSimAnchor}
+        >
+          {visionSimItems.map((item) => (
+            <MenuItem
+              key={item.id}
+              selected={item.id === document.documentElement.style.filter}
+              onClick={() => {
+                setVisionSimAnchor(null);
+                if (item.id) document.documentElement.style.filter = item.id;
+                else document.documentElement.style = '';
+              }}
+            >
+              {item.label}
+            </MenuItem>
+          ))}
+        </Menu>
+
+        {IS_DESKTOP && (
+          <Tip
+            title={
+              t('footer.devtools') + ' ' + (IS_APPLE ? '⌘⇧I' : '(Ctrl+Shift+I)')
+            }
+          >
+            <IconButton
+              aria-label={t('footer.devtools')}
+              size='small'
+              onClick={() => invoke('open_devtools')}
+            >
+              <MaterialIcon name='code' fontSize='small' />
+            </IconButton>
+          </Tip>
+        )}
+      </div>
     </motion.footer>
   );
 }

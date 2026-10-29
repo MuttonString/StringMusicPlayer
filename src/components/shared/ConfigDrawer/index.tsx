@@ -18,6 +18,7 @@ import {
   DEV_CONFIG_GROUP_ID_LIST,
   DEV_CONFIG_ID_LIST,
 } from '../../../constants/config';
+import { IS_APPLE } from '../../../constants/os';
 import { useScrollKeyPressed } from '../../../hooks/useScrollKeyPressed';
 import { useConfig } from '../../../providers/ConfigProvider';
 import type { OpenConfigDrawerFn } from '../../../types/component';
@@ -89,7 +90,12 @@ export default function ConfigDrawer({ ref }: Props) {
 
   return (
     <SwipeableDrawer
-      onKeyDown={onKeyDown}
+      onKeyDown={(e) => {
+        onKeyDown(e);
+        if ((IS_APPLE ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'g') {
+          setOpen(false);
+        }
+      }}
       disableSwipeToOpen
       open={open}
       onOpen={() => setOpen(true)}

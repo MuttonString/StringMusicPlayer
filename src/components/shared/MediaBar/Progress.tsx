@@ -12,13 +12,12 @@ import type { PointerEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import WaveformGenerator from 'waveform-generator-web';
 import { FADE_DURATION } from '../../../constants/animation';
-import { useAudio } from '../../../providers/AudioProvider';
+import { useAudio, useAudioTime } from '../../../providers/AudioProvider';
 import { useConfig } from '../../../providers/ConfigProvider';
 import type { Song } from '../../../types/audio';
 import { ShowAudioWave } from '../../../types/config';
 import { BackendEvent } from '../../../types/event';
 import { formatTime } from '../../../utils/data';
-import { isRTL } from '../../../utils/window';
 import SliderAlt from '../../ui/SliderAlt';
 import Tip from '../../ui/Tip';
 
@@ -27,21 +26,22 @@ const MotionSlider = motion.create(SliderAlt);
 export default function Progress() {
   const [config] = useConfig();
   const media = useAudio();
+  const currTime = useAudioTime();
   const currSong = media.playQueue[media.currIdx] as Song | undefined;
   const duration = currSong?.duration || 0;
 
   const draggingRef = useRef(false);
-  const [sliderVal, setSliderVal] = useState(media.currentTime);
+  const [sliderVal, setSliderVal] = useState(currTime);
   useEffect(() => {
     if (draggingRef.current) return;
-    setSliderVal(media.currentTime);
-  }, [media.currentTime]);
+    setSliderVal(currTime);
+  }, [currTime]);
 
   // 前端运算精确的播放进度，并定期从后端同步
   const accurateTimePercent = useMotionValue(0);
   useEffect(() => {
-    accurateTimePercent.set((media.currentTime / duration) * 100);
-  }, [accurateTimePercent, duration, media.currentTime]);
+    accurateTimePercent.set((currTime / duration) * 100);
+  }, [accurateTimePercent, duration, currTime]);
 
   const oneMsPercent = useMemo(
     () => (duration ? (config.speed / (duration * 1000)) * 100 : 0),
@@ -68,9 +68,7 @@ export default function Progress() {
     (e: PointerEvent<HTMLDivElement>) => {
       const slider = e.currentTarget;
       const rect = slider.getBoundingClientRect();
-      const relativeX = isRTL()
-        ? rect.right - e.clientX
-        : e.clientX - rect.left;
+      const relativeX = e.clientX - rect.left;
       const value = Math.round((relativeX / rect.width) * duration);
       setSliderLabel(formatTime(Math.min(duration, Math.max(value, 0))));
       pointerX.set(relativeX > rect.width || relativeX < 0 ? NaN : relativeX);
@@ -123,7 +121,7 @@ export default function Progress() {
 
   return (
     currSong && (
-      <div className='flex gap-1 items-center'>
+      <bdi dir='ltr' className='flex gap-1 items-center'>
         <div className='w-10 text-sm'>{formatTime(sliderVal)}</div>
         <Tip
           disabled={media.pending}
@@ -178,7 +176,7 @@ export default function Progress() {
                   {/* 未播放波形 */}
                   {waveSrc && (
                     <img
-                      className='absolute rtl:-scale-x-100 h-full w-full opacity-(--mui-palette-action-disabledOpacity)'
+                      className='absolute h-full w-full opacity-(--mui-palette-action-disabledOpacity)'
                       alt=''
                       src={waveSrc}
                     />
@@ -188,7 +186,7 @@ export default function Progress() {
                   {/* 已播放波形 */}
                   {waveSrc && (
                     <motion.img
-                      className='absolute rtl:-scale-x-100 h-full w-full'
+                      className='absolute h-full w-full'
                       style={{ clipPath }}
                       alt=''
                       src={waveSrc}
@@ -249,7 +247,7 @@ export default function Progress() {
         <div className='w-10 text-end text-sm'>
           {formatTime(currSong.duration || 0)}
         </div>
-      </div>
+      </bdi>
     )
   );
 }

@@ -117,17 +117,19 @@ export default function MediaButtons() {
                   />
                 )}
                 <div className='flex flex-col'>
-                  <div>
-                    {prevSong.title}
+                  <div className='flex gap-1'>
+                    <bdi dir='auto'>{prevSong.title}</bdi>
                     {prevSong.translation && (
-                      <span className='ms-2 opacity-70'>
-                        ({prevSong.translation})
-                      </span>
+                      <bdi dir='auto' className='opacity-70'>
+                        (<bdi dir='auto'>{prevSong.translation}</bdi>)
+                      </bdi>
                     )}
                   </div>
                   {prevSong.artists && (
-                    <div className='opacity-70'>
-                      {prevSong.artists.map((item) => item.label).join('; ')}
+                    <div>
+                      <bdi dir='auto' className='opacity-70'>
+                        {prevSong.artists.map((item) => item.label).join('; ')}
+                      </bdi>
                     </div>
                   )}
                 </div>
@@ -190,17 +192,19 @@ export default function MediaButtons() {
                   />
                 )}
                 <div className='flex flex-col'>
-                  <div>
-                    {nextSong.title}
+                  <div className='flex gap-1'>
+                    <bdi dir='auto'>{nextSong.title}</bdi>
                     {nextSong.translation && (
-                      <span className='ms-2 opacity-70'>
-                        ({nextSong.translation})
-                      </span>
+                      <bdi dir='auto' className='opacity-70'>
+                        (<bdi dir='auto'>{nextSong.translation}</bdi>)
+                      </bdi>
                     )}
                   </div>
                   {nextSong.artists && (
-                    <div className='opacity-70'>
-                      {nextSong.artists.map((item) => item.label).join('; ')}
+                    <div>
+                      <bdi dir='auto' className='opacity-70'>
+                        {nextSong.artists.map((item) => item.label).join('; ')}
+                      </bdi>
                     </div>
                   )}
                 </div>

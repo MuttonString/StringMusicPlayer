@@ -4,7 +4,7 @@ import { fetch as tauriFetch } from '@tauri-apps/plugin-http';
 /**
  * 必要情况下调用Tauri后端进行fetch
  */
-export function fetchAlt(
+export async function fetchAlt(
   input: string | URL | Request,
   init?: (RequestInit & ClientOptions) | undefined,
 ) {
@@ -18,8 +18,14 @@ export function fetchAlt(
   }
 
   if (/^https?:\/\//i.test(url) && !/^https?:\/\/asset\.localhost/i.test(url)) {
-    return tauriFetch(input, init);
+    console.info(`Fetching "${url}".`);
+    try {
+      return await tauriFetch(input, init);
+    } catch (err) {
+      console.warn(`Failed to Fetching "${url}": ${err}`);
+      return await Promise.reject(err);
+    }
   }
 
-  return fetch(input, init);
+  return await fetch(input, init);
 }

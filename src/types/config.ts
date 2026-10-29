@@ -101,9 +101,9 @@ export interface AppConfig {
   backgroundMainWindowPath: string; // 仅在图片背景时有效
   backgroundMiniWindowType: Exclude<
     BackgroundType,
-    BackgroundType.RandomPictures
+    BackgroundType.SinglePicture | BackgroundType.RandomPictures
   >;
-  backgroundMiniWindowOpacity: number; // 仅在标准背景或图片背景时有效
+  backgroundMiniWindowOpacity: number; // 仅在标准背景时有效
   globalFont: string; // 为空时使用默认
   advancedMaterialEnabled: boolean;
   advancedMaterialOpacity: number; // 仅启用时有效

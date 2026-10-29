@@ -35,9 +35,15 @@ export default function Metadata({ useShortcutKeyReturnValue }: Props) {
             placement='top'
             title={
               <div className='flex flex-col'>
-                <div>{currSong.title}</div>
+                <div>
+                  <bdi dir='auto'>{currSong.title}</bdi>
+                </div>
                 {currSong.translation && (
-                  <div className='opacity-70'>({currSong.translation})</div>
+                  <div className='opacity-70'>
+                    <bdi dir='auto'>
+                      (<bdi dir='auto'>{currSong.translation}</bdi>)
+                    </bdi>
+                  </div>
                 )}
                 <div>
                   {t('media.playPage') + ' ' + useShortcutKeyReturnValue[0]}
@@ -56,12 +62,16 @@ export default function Metadata({ useShortcutKeyReturnValue }: Props) {
                 t('media.playPage')
               }
             >
-              <div className='truncate'>{currSong.title}</div>
-              {currSong.translation && (
-                <div className='ms-2 truncate text-text-secondary'>
-                  ({currSong.translation})
-                </div>
-              )}
+              <div className='flex gap-2 truncate'>
+                <bdi dir='auto' className='truncate'>
+                  {currSong.title}
+                </bdi>
+                {currSong.translation && (
+                  <bdi dir='auto' className='truncate text-text-secondary'>
+                    (<bdi dir='auto'>{currSong.translation}</bdi>)
+                  </bdi>
+                )}
+              </div>
             </Button>
           </Tip>
         </div>
@@ -78,10 +88,14 @@ export default function Metadata({ useShortcutKeyReturnValue }: Props) {
                       title={
                         <div className='flex flex-col'>
                           <div className='font-bold'>{t('media.artist')}</div>
-                          <div>{item.label}</div>
+                          <div>
+                            <bdi dir='auto'>{item.label}</bdi>
+                          </div>
                           {item.translation && (
                             <div className='opacity-70'>
-                              ({item.translation})
+                              <bdi dir='auto'>
+                                (<bdi dir='auto'>{item.translation}</bdi>)
+                              </bdi>
                             </div>
                           )}
                         </div>
@@ -99,7 +113,8 @@ export default function Metadata({ useShortcutKeyReturnValue }: Props) {
                             (item.translation || item.label)
                           }
                         >
-                          <div
+                          <bdi
+                            dir='auto'
                             className={classNames(
                               'truncate',
                               item.id
@@ -108,7 +123,7 @@ export default function Metadata({ useShortcutKeyReturnValue }: Props) {
                             )}
                           >
                             {item.label}
-                          </div>
+                          </bdi>
                         </Button>
                       </div>
                     </Tip>
@@ -140,10 +155,14 @@ export default function Metadata({ useShortcutKeyReturnValue }: Props) {
                 title={
                   <div className='flex flex-col'>
                     <div className='font-bold'>{t('media.album')}</div>
-                    <div>{currSong.album.label}</div>
+                    <div>
+                      <bdi dir='auto'>{currSong.album.label}</bdi>
+                    </div>
                     {currSong.album.translation && (
                       <div className='opacity-70'>
-                        ({currSong.album.translation})
+                        <bdi dir='auto'>
+                          (<bdi dir='auto'>{currSong.album.translation}</bdi>)
+                        </bdi>
                       </div>
                     )}
                   </div>
@@ -161,7 +180,8 @@ export default function Metadata({ useShortcutKeyReturnValue }: Props) {
                       (currSong.album.translation || currSong.album.label)
                     }
                   >
-                    <div
+                    <bdi
+                      dir='auto'
                       className={classNames(
                         'truncate',
                         currSong.album.id
@@ -170,7 +190,7 @@ export default function Metadata({ useShortcutKeyReturnValue }: Props) {
                       )}
                     >
                       {currSong.album.label}
-                    </div>
+                    </bdi>
                   </Button>
                 </div>
               </Tip>

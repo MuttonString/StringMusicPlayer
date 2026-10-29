@@ -149,7 +149,7 @@ export default function About({ refs }: RefsProp) {
           <ListItem disablePadding>
             <ListItemButton
               onDoubleClick={() => {
-                openUrl('https://github.com/MuttonString/StringMusic');
+                openUrl('https://github.com/MuttonString/StringMusicPlayer');
               }}
             >
               <ListItemIcon sx={{ marginRight: '8px' }}>

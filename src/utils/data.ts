@@ -153,3 +153,39 @@ export async function srcToPath(src: string, fileName: string) {
     return '';
   }
 }
+
+/**
+ * 生成由若干指定长度且无重复值的随机序列拼接而成的序列
+ */
+export function generateRandomList(seed: number, len: number, repeat: number) {
+  let state = seed;
+  const array: number[] = [];
+
+  const nextInt = (max: number) => {
+    state = (state * 114514 + 1919810) % 2147483647;
+    return state % max;
+  };
+
+  for (let i = 0; i < repeat; i++) {
+    const arr = Array.from({ length: len }, (_, i) => i);
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(nextInt(i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    array.push(...arr);
+  }
+
+  if (len > 1) {
+    // 避免相同值相邻
+    for (let i = 1; i < repeat; i++) {
+      const idx = len * i;
+      if (array[idx - 1] === array[idx]) {
+        [array[idx], array[idx + 1]] = [array[idx + 1], array[idx]];
+      }
+    }
+    if (array[0] === array[array.length - 1]) {
+      [array[0], array[1]] = [array[1], array[0]];
+    }
+  }
+  return array;
+}

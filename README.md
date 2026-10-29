@@ -1,4 +1,4 @@
-# String 音乐
+# String 音乐播放器
 
 一个现代风格的音乐播放器，基于 [Tauri](https://tauri.app/start/)，支持在线音乐。可添加自定义的在线音乐源。
 
@@ -8,7 +8,7 @@ todo
 
 ## 安装
 
-从 [Releases](https://github.com/MuttonString/string-music/releases) 下载
+从 [Releases](https://github.com/MuttonString/string-music-player/releases) 下载
 
 | 操作系统 | 架构                  | 文件          |
 | -------- | --------------------- | ------------- |

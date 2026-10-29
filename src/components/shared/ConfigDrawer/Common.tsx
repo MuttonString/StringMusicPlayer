@@ -65,10 +65,14 @@ export default function Common({ refs }: RefsProp) {
               updateConfig({ language: val === '-' ? '' : val });
             }}
           >
-            <MenuItem value='-'>{t('config.followSystem')}</MenuItem>
+            <MenuItem key='-' value='-'>
+              {t('config.followSystem')}
+            </MenuItem>
             {Object.keys(i18n.services.resourceStore.data).map((item) => (
-              <MenuItem lang={item} key={item} value={item}>
-                {t('name', { lng: item })}
+              <MenuItem key={item} value={item}>
+                <bdi lang={item} dir='auto'>
+                  {t('name', { lng: item })}
+                </bdi>
               </MenuItem>
             ))}
           </Select>

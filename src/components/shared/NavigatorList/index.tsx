@@ -3,15 +3,20 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import classNames from 'classnames';
 import { motion } from 'framer-motion';
+import type { JSX } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 import { LIST_ITEM } from '../../../constants/animation';
+import { IS_APPLE } from '../../../constants/os';
+import useShortcutKey from '../../../hooks/useShortcutKey';
 import { useConfigDrawer } from '../../../providers/ConfigDrawerProvider';
 import { useConfig } from '../../../providers/ConfigProvider';
 import { useNavigator } from '../../../providers/NavigatorProvider';
+import { KeyCode } from '../../../types/keyCode';
 import MaterialIcon from '../../ui/MaterialIcon';
 import MotionList from '../../ui/MotionList';
+import Tip from '../../ui/Tip';
 
 interface Props {
   onButtonClicked?: () => void;
@@ -33,68 +38,82 @@ export default function NavigatorList({
   const path = location.pathname.split('/')[1];
   const { t } = useTranslation();
   const { goTo } = useNavigator();
-  const [disabled, setDisabled] = useState<string[]>([]);
 
   const items = useMemo(
-    () => [
-      {
-        id: 'home',
-        icon: <MaterialIcon name='home' />,
-        label: t('page.home'),
-      },
-      {
-        id: 'recommendation',
-        icon: <MaterialIcon name='assistant' />,
-        label: t('page.recommendation'),
-      },
-      {
-        id: 'recent',
-        icon: <MaterialIcon name='history' />,
-        label: t('page.recent'),
-      },
-      {
-        id: 'artistCollection',
-        icon: <MaterialIcon name='peopleAlt' />,
-        label: t('page.artistCollection'),
-      },
-      {
-        id: 'albumCollection',
-        icon: <MaterialIcon name='album' />,
-        label: t('page.albumCollection'),
-      },
-      {
-        id: 'mvCollection',
-        icon: <MaterialIcon name='musicVideo' />,
-        label: t('page.mvCollection'),
-      },
-      {
-        id: 'favoriteSongs',
-        icon: <MaterialIcon name='favorite' />,
-        label: t('page.favoriteSongs'),
-      },
-      {
-        id: 'playlist',
-        icon: <MaterialIcon name='viewList' />,
-        label: t('page.playlist'),
-      },
-    ],
-    [t],
-  );
+    () =>
+      [
+        {
+          id: 'home',
+          icon: <MaterialIcon name='home' />,
+        },
+        config.recommendation && {
+          id: 'recommendation',
+          icon: <MaterialIcon name='assistant' />,
+        },
+        config.recentPlayed && {
+          id: 'recent',
+          icon: <MaterialIcon name='history' />,
+        },
+        {
+          id: 'artistCollection',
+          icon: <MaterialIcon name='peopleAlt' />,
+        },
+        {
+          id: 'albumCollection',
+          icon: <MaterialIcon name='album' />,
+        },
+        {
+          id: 'mvCollection',
+          icon: <MaterialIcon name='musicVideo' />,
+        },
+        {
+          id: 'favoriteSongs',
+          icon: <MaterialIcon name='favorite' />,
+        },
+        {
+          id: 'playlist',
+          icon: <MaterialIcon name='viewList' />,
+        },
+      ].filter(Boolean),
+    [config.recentPlayed, config.recommendation],
+  ) as unknown as {
+    id: string;
+    icon: JSX.Element;
+  }[];
 
   useEffect(() => {
     setSelected(path);
   }, [path]);
 
   useEffect(() => {
-    const newDisabled = [];
-    if (!config.recommendation) {
-      newDisabled.push('recommendation');
-    }
-    if (!config.recentPlayed) {
-      newDisabled.push('recent');
-    }
-    setDisabled(newDisabled);
-  }, [config.recentPlayed, config.recommendation]);
+    if (!onButtonClicked) return;
+
+    const fn = (e: KeyboardEvent) => {
+      const keyNum = Number(e.key);
+      if (
+        (IS_APPLE ? e.metaKey : e.ctrlKey) &&
+        keyNum >= 1 &&
+        keyNum <= items.length
+      ) {
+        const id = items[keyNum - 1].id;
+        if (selected === id) return;
+        goTo('/' + id);
+        onButtonClicked();
+      }
+    };
+
+    window.addEventListener('keydown', fn, true);
+    return () => window.removeEventListener('keydown', fn, true);
+  }, [goTo, inDrawer, items, onButtonClicked, selected]);
+
+  const [openDownloadKey, openDownload] = useShortcutKey(() => {
+    onButtonClicked?.();
+  }, [KeyCode.Ctrl, 'D']);
+
+  const [openConfigKey, openConfig] = useShortcutKey(() => {
+    onButtonClicked?.();
+    openDrawer();
+  }, [KeyCode.Ctrl, 'G']);
 
   return (
     <div
@@ -104,17 +123,19 @@ export default function NavigatorList({
       )}
     >
       <MotionList animate={!inDrawer}>
-        {items
-          .filter((item) => !disabled.includes(item.id))
-          .map((item) => (
+        {items.map((item, idx) => (
+          <Tip
+            key={item.id}
+            title={IS_APPLE ? `⌘${idx + 1}` : `(Ctrl+${idx + 1})`}
+            placement='right'
+          >
             <MotionLiBtn
+              aria-label={t('page.' + item.id)}
               layout={!inDrawer}
               variants={inDrawer ? undefined : LIST_ITEM}
-              key={item.id}
               selected={selected === item.id}
               onClick={() => {
                 if (selected === item.id) return;
-                setSelected(item.id);
                 goTo('/' + item.id);
                 onButtonClicked?.();
               }}
@@ -126,41 +147,41 @@ export default function NavigatorList({
               </ListItemIcon>
               <ListItemText
                 className={classNames(selected === item.id && '**:font-bold!')}
-                primary={item.label}
+                primary={t('page.' + item.id)}
               />
             </MotionLiBtn>
-          ))}
+          </Tip>
+        ))}
       </MotionList>
 
       <MotionList animate={!inDrawer}>
-        <MotionLiBtn
-          key='download'
-          layout={!inDrawer}
-          variants={inDrawer ? undefined : LIST_ITEM}
-          onClick={() => {
-            onButtonClicked?.();
-          }}
-        >
-          <ListItemIcon>
-            <MaterialIcon name='download' />
-          </ListItemIcon>
-          <ListItemText primary={t('drawer.download')} />
-        </MotionLiBtn>
+        <Tip key='download' title={openDownloadKey} placement='right'>
+          <MotionLiBtn
+            aria-label={t('drawer.download')}
+            layout={!inDrawer}
+            variants={inDrawer ? undefined : LIST_ITEM}
+            onClick={openDownload}
+          >
+            <ListItemIcon>
+              <MaterialIcon name='download' />
+            </ListItemIcon>
+            <ListItemText primary={t('drawer.download')} />
+          </MotionLiBtn>
+        </Tip>
 
-        <MotionLiBtn
-          key='settings'
-          layout={!inDrawer}
-          variants={inDrawer ? undefined : LIST_ITEM}
-          onClick={() => {
-            openDrawer();
-            onButtonClicked?.();
-          }}
-        >
-          <ListItemIcon>
-            <MaterialIcon name='settings' />
-          </ListItemIcon>
-          <ListItemText primary={t('drawer.settings')} />
-        </MotionLiBtn>
+        <Tip key='settings' title={openConfigKey} placement='right'>
+          <MotionLiBtn
+            aria-label={t('drawer.settings')}
+            layout={!inDrawer}
+            variants={inDrawer ? undefined : LIST_ITEM}
+            onClick={openConfig}
+          >
+            <ListItemIcon>
+              <MaterialIcon name='settings' />
+            </ListItemIcon>
+            <ListItemText primary={t('drawer.settings')} />
+          </MotionLiBtn>
+        </Tip>
       </MotionList>
     </div>
   );

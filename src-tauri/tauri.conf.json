@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "String Music",
+  "productName": "String Music Player",
   "version": "1.0.0",
-  "identifier": "com.muttonstring.string-music",
+  "identifier": "com.muttonstring.string-music-player",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "String Music",
+        "title": "String Music Player",
         "width": 800,
         "height": 600,
         "minWidth": 400,

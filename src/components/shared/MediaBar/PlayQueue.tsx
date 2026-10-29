@@ -183,9 +183,13 @@ export default function PlayQueue(props: Props) {
       anchor='right'
       onKeyDown={(e) => {
         onKeyDown(e);
+        if ((IS_APPLE ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === 'l') {
+          return onClose();
+        }
         if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
           return;
         }
+
         if (e.key === (IS_APPLE ? KeyCode.Backspace : KeyCode.Del)) {
           removeSelected();
         } else if (
@@ -345,7 +349,7 @@ export default function PlayQueue(props: Props) {
               </Tip>
             </div>
 
-            <div>
+            <div className='text-sm'>
               {selected.length
                 ? t('media.selected', {
                     count: filtered.length,

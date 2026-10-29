@@ -1,5 +1,5 @@
 {
-  "identifier": "com.muttonstring.string-music",
+  "identifier": "com.muttonstring.string-music-player",
   "bundle": {
     "resources": {
       "taskbar-icons/*": "./"

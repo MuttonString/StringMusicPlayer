@@ -60,8 +60,8 @@ const initVal: AppConfig = {
   backgroundMainWindowType: BackgroundType.SinglePicture,
   backgroundMainWindowOpacity: 80,
   backgroundMainWindowPath: '',
-  backgroundMiniWindowType: BackgroundType.SinglePicture,
-  backgroundMiniWindowOpacity: 80,
+  backgroundMiniWindowType: BackgroundType.Standard,
+  backgroundMiniWindowOpacity: 100,
   globalFont: '',
   advancedMaterialEnabled: true,
   advancedMaterialOpacity: 60,
@@ -96,7 +96,7 @@ const initVal: AppConfig = {
   replaceWholeQueue: false,
   volumeValue: 100,
   volumeOver100Allowed: false,
-  balanceVolume: true,
+  balanceVolume: false,
   speed: 1,
   detune: 0,
   equalizer: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -119,7 +119,7 @@ const reducer = (prev: AppConfig, action: Partial<AppConfig>) => {
   const newVal = { ...prev, ...action };
   window.__CONFIG__ = newVal;
   Object.entries(action).forEach(([key, value]) => {
-    applyConfigFnMap[key as keyof AppConfig]?.(value as never);
+    applyConfigFnMap[key as keyof AppConfig]?.(value as never, newVal);
   });
   return newVal;
 };

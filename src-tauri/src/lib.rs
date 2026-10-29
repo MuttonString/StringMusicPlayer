@@ -1,6 +1,7 @@
 use std::env;
 use std::panic;
 use std::sync::Mutex;
+use tauri::webview::PermissionResponse;
 use tauri::{Emitter, Manager, RunEvent};
 use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
 use tauri_plugin_log::{Target, TargetKind, log};
@@ -20,6 +21,7 @@ mod titlebar;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
+        .on_permission_request(|_, _| PermissionResponse::Allow)
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_autostart::Builder::new().build())

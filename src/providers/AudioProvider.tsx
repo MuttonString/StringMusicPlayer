@@ -15,6 +15,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -41,6 +42,7 @@ import { PlaybackMode } from '../types/config';
 import type { UpdateQueuePayload } from '../types/event';
 import { BackendEvent } from '../types/event';
 import {
+  generateRandomList,
   getAudioDuration,
   getBasename,
   imgSrcToBlob,
@@ -62,13 +64,14 @@ const initVal: AudioProviderContext = {
   playQueue: [],
   paused: true,
   pending: false,
-  currentTime: 0,
   lyric: [],
 };
 
 const Context = createContext(initVal);
+const AudioTimeContext = createContext(0);
 
 export const useAudio = () => useContext(Context);
+export const useAudioTime = () => useContext(AudioTimeContext);
 
 export function AudioProvider({ children }: ChildrenProp) {
   const [config, updateConfig] = useConfig();
@@ -87,7 +90,6 @@ export function AudioProvider({ children }: ChildrenProp) {
   const [pending, setPending] = useState(false);
   const [currentTime, setCurrentTime] = useState(0); // 精确到秒
   const currTimeRef = useRef(0); // 更精确的时间
-  const timerRef = useRef(0);
   const [lyric, setLyric] = useState<LyricSentence[]>([]);
   const [currBuffer, setCurrBuffer] = useState<[string, ArrayBuffer]>();
   const [opening, setOpening] = useState(false);
@@ -200,7 +202,7 @@ export function AudioProvider({ children }: ChildrenProp) {
     const tone = toneRef.current;
     if (!tone) return;
     tone.activePlayer.stop();
-
+    ``;
     if (config.speed === 1 && config.detune === 0) {
       tone.activePlayer = tone.player;
       if (!pausedRef.current) {
@@ -246,51 +248,9 @@ export function AudioProvider({ children }: ChildrenProp) {
 
   // 加载中
   useEffect(() => {
-    const unlisten = listen<boolean>(BackendEvent.IsLoading, (e) =>
-      setPending(e.payload),
-    );
-    return () => {
-      unlisten.then((fn) => fn());
-    };
-  }, []);
-
-  // 播放
-  useEffect(() => {
-    const unlisten = listen(BackendEvent.Play, async () => {
-      setPaused(false);
-      if (!toneRef.current) return;
-      await Tone.start();
-      toneRef.current.activePlayer.start(
-        Tone.now(),
-        currTimeRef.current / config.speed,
-      );
-    });
-    return () => {
-      unlisten.then((fn) => fn());
-    };
-  }, [config.speed]);
-
-  // 暂停
-  useEffect(() => {
-    const unlisten = listen(BackendEvent.Pause, async () => {
-      setPaused(true);
-      if (!toneRef.current) return;
-      toneRef.current.activePlayer.stop();
-    });
-    return () => {
-      unlisten.then((fn) => fn());
-    };
-  }, []);
-
-  // 切换播放、暂停
-  useEffect(() => {
-    if (!toneRef.current) return;
-    const unlisten = listen(BackendEvent.Toggle, () => {
-      if (pausedRef.current) {
-        emit(BackendEvent.Play);
-      } else {
-        emit(BackendEvent.Pause);
-      }
+    const unlisten = listen<boolean>(BackendEvent.IsLoading, (e) => {
+      console.info(e.payload ? 'Loading audio.' : 'Audio loaded.');
+      setPending(e.payload);
     });
     return () => {
       unlisten.then((fn) => fn());
@@ -299,12 +259,12 @@ export function AudioProvider({ children }: ChildrenProp) {
 
   // 播放进度更新
   const dateRef = useRef(0);
-  useEffect(() => {
-    clearInterval(timerRef.current);
-    if (paused) return;
+  const timerRef = useRef(0);
+  const timerFnRef = useRef(() => {});
 
-    dateRef.current = Date.now();
-    timerRef.current = setInterval(() => {
+  useEffect(() => {
+    if (!toneRef.current) return;
+    timerFnRef.current = () => {
       const int = Math.floor(currTimeRef.current);
       currTimeRef.current +=
         ((Date.now() - dateRef.current) * config.speed) / 1000;
@@ -320,6 +280,7 @@ export function AudioProvider({ children }: ChildrenProp) {
         currTimeRef.current >=
           toneRef.current.activePlayer.buffer.duration - 0.0625
       ) {
+        console.info('Audio ended.');
         switch (config.playbackMode) {
           case PlaybackMode.NoRepeat:
             emit(BackendEvent.Stop);
@@ -332,13 +293,70 @@ export function AudioProvider({ children }: ChildrenProp) {
             break;
         }
       }
-    }, 125);
-  }, [config.playbackMode, config.speed, paused]);
+    };
+  }, [config.playbackMode, config.speed]);
+
+  const start = useCallback((offset?: number) => {
+    console.info(`Audio start at offset ${offset}.`);
+    clearInterval(timerRef.current);
+    dateRef.current = Date.now();
+    timerRef.current = setInterval(() => timerFnRef.current(), 125);
+    toneRef.current!.activePlayer.start(Tone.now(), offset);
+  }, []);
+
+  const stop = useCallback(() => {
+    console.info('Audio stop.');
+    clearInterval(timerRef.current);
+    toneRef.current!.activePlayer.stop();
+  }, []);
 
   useEffect(() => {
     const unlisten = listen<number>(BackendEvent.TimeUpdate, (e) =>
       setCurrentTime(e.payload),
     );
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  // 播放
+  useEffect(() => {
+    const unlisten = listen(BackendEvent.Play, async () => {
+      console.info('Received "play".');
+      setPaused(false);
+      if (!toneRef.current) return;
+      await Tone.start();
+      start(currTimeRef.current / config.speed);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [config.speed, start]);
+
+  // 暂停
+  useEffect(() => {
+    const unlisten = listen(BackendEvent.Pause, async () => {
+      console.info('Received "pause".');
+      setPaused(true);
+      if (!toneRef.current) return;
+      stop();
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [stop]);
+
+  // 切换播放、暂停
+  useEffect(() => {
+    if (!toneRef.current) return;
+    const unlisten = listen(BackendEvent.Toggle, () => {
+      console.info('Received "toggle".');
+      if (pausedRef.current) {
+        emit(BackendEvent.Play);
+      } else {
+        emit(BackendEvent.Pause);
+      }
+    });
     return () => {
       unlisten.then((fn) => fn());
     };
@@ -432,14 +450,15 @@ export function AudioProvider({ children }: ChildrenProp) {
     setCurrBuffer(undefined);
     setCurrentTime(0);
     currTimeRef.current = 0;
-    emit(BackendEvent.IsLoading, true);
-    tone.activePlayer.stop();
+    stop();
     tone.activePlayer.mute = true;
     if (!currSong?.src) return;
+    emit(BackendEvent.IsLoading, true);
 
     const load = async () => {
       controllerRef.current = new AbortController();
-      const resp = await fetchAlt(currSong?.src, {
+      console.info(`Loading audio "${currSong.src}".`);
+      const resp = await fetchAlt(currSong.src, {
         signal: controllerRef.current.signal,
       });
       const buffer = await resp.arrayBuffer();
@@ -469,18 +488,18 @@ export function AudioProvider({ children }: ChildrenProp) {
         tone.replayGain.volume.value = 0;
       }
       console.info(
-        `Replay gain: ${toneRef.current!.replayGain.volume.value} db.`,
+        `Replay gain: ${toneRef.current!.replayGain.volume.value.toFixed(2)} db.`,
       );
 
       if (!pausedRef.current) {
         await Tone.start();
-        tone.activePlayer.start(Tone.now(), 0);
+        start(0);
         tone.activePlayer.mute = false;
       }
     };
 
     load().catch((err) => handleLoadErrorRef.current(err, currSong.src));
-  }, [currSong?.src]);
+  }, [currSong?.src, start, stop]);
 
   useEffect(() => {
     if (
@@ -539,33 +558,20 @@ export function AudioProvider({ children }: ChildrenProp) {
   useEffect(() => {
     const len = playQueue.length;
 
-    if (!len) {
+    if (len === 0) {
       setCurrIdx(-1);
       randomIdxListRef.current = [];
       return;
     }
 
-    const array: number[] = [];
+    const seed = Math.floor(Math.random() * 1000);
+    console.info(`Random queue seed: ${seed}, length: ${len}.`);
     setCurrIdx((prev) => (prev >= len ? len - 1 : prev));
-
-    for (let i = 0; i < 2; i++) {
-      const arr = Array.from({ length: len }, (_, i) => i);
-      for (let i = arr.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [arr[i], arr[j]] = [arr[j], arr[i]];
-      }
-      array.push(...arr);
-    }
-
-    if (len > 1) {
-      if (array[len - 1] === array[len]) {
-        [array[len], array[len + 1]] = [array[len + 1], array[len]];
-      }
-      if (array[0] === array[array.length - 1]) {
-        [array[0], array[1]] = [array[1], array[0]];
-      }
-    }
-    randomIdxListRef.current = array;
+    randomIdxListRef.current = generateRandomList(
+      seed,
+      len,
+      Math.floor(100 / len) + 1,
+    );
   }, [playQueue.length]);
 
   // 设置上一首、下一首的索引
@@ -592,52 +598,55 @@ export function AudioProvider({ children }: ChildrenProp) {
   // 上一首
   useEffect(() => {
     const unlisten = listen(BackendEvent.Previous, () => {
+      console.info('Received "previous".');
       if (canChangeTrack) {
         setCurrIdx(prevIdx);
       } else {
         setCurrentTime(0);
         currTimeRef.current = 0;
         if (!toneRef.current) return;
-        toneRef.current.activePlayer.stop();
-        toneRef.current.activePlayer.start(Tone.now(), 0);
+        stop();
+        start(0);
       }
     });
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [canChangeTrack, prevIdx]);
+  }, [canChangeTrack, prevIdx, start, stop]);
 
   // 下一首
   useEffect(() => {
     const unlisten = listen(BackendEvent.Next, () => {
+      console.info('Received "next".');
       if (canChangeTrack) {
         setCurrIdx(nextIdx);
       } else {
         setCurrentTime(0);
         currTimeRef.current = 0;
         if (!toneRef.current) return;
-        toneRef.current.activePlayer.stop();
-        toneRef.current.activePlayer.start(Tone.now(), 0);
+        stop();
+        start(0);
       }
     });
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [canChangeTrack, nextIdx]);
+  }, [canChangeTrack, nextIdx, start, stop]);
 
   // 停止
   useEffect(() => {
     const unlisten = listen(BackendEvent.Stop, () => {
+      console.info('Received "stop".');
       setCurrentTime(0);
       currTimeRef.current = 0;
       setPaused(true);
       if (!toneRef.current) return;
-      toneRef.current.activePlayer.stop();
+      stop();
     });
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, []);
+  }, [stop]);
 
   // 向前
   useEffect(() => {
@@ -680,7 +689,7 @@ export function AudioProvider({ children }: ChildrenProp) {
         let position: number;
 
         if (duration === undefined) {
-          console.info(`Seek forward ${duration}s.`);
+          console.info(`Seek backward ${duration}s.`);
           position =
             lyric[
               lyric.findIndex((item) => item.start <= currTimeRef.current) + 1
@@ -705,18 +714,15 @@ export function AudioProvider({ children }: ChildrenProp) {
       currTimeRef.current = e.payload;
       if (toneRef.current) {
         console.info(`Set audio position to ${e.payload}s.`);
-        toneRef.current.activePlayer.stop();
+        stop();
         if (pausedRef.current) return;
-        toneRef.current.activePlayer.start(
-          Tone.now(),
-          e.payload / config.speed,
-        );
+        start(e.payload / config.speed);
       }
     });
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [config.speed]);
+  }, [config.speed, start, stop]);
 
   // 更改音量
   useEffect(() => {
@@ -773,7 +779,7 @@ export function AudioProvider({ children }: ChildrenProp) {
             }
           }
         } else {
-          console.warn(`Path ${uri} does not exist.`);
+          console.warn(`Path "${uri}" does not exist.`);
         }
       } catch (err) {
         console.error(`Failed to open URI "${uri}": ${err}`);
@@ -845,14 +851,14 @@ export function AudioProvider({ children }: ChildrenProp) {
           setCurrentTime(0);
           currTimeRef.current = 0;
           if (toneRef.current) {
-            toneRef.current.activePlayer.stop();
-            toneRef.current.activePlayer.start(Tone.now(), 0);
+            stop();
+            start(0);
           }
           return prev;
         }
 
         if (toneRef.current) {
-          toneRef.current.activePlayer.stop();
+          stop();
         }
 
         setCurrentTime(0);
@@ -873,7 +879,7 @@ export function AudioProvider({ children }: ChildrenProp) {
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [getMetadata, parseUris, shuffle]);
+  }, [getMetadata, parseUris, shuffle, start, stop]);
 
   useEffect(() => {
     const unlisten: Promise<UnlistenFn>[] = [];
@@ -886,6 +892,7 @@ export function AudioProvider({ children }: ChildrenProp) {
     // 作为打开方式打开文件
     invoke<string[]>('opened_urls').then((val) => {
       if (val.length === 0) return;
+      console.info('Opened urls exists.');
       emit<string[]>(BackendEvent.OpenUri, val);
     });
 
@@ -893,6 +900,7 @@ export function AudioProvider({ children }: ChildrenProp) {
     unlisten.push(
       getCurrentWebviewWindow().onDragDropEvent((e) => {
         if (e.payload.type === 'drop') {
+          console.info('File dropped in.');
           emit(BackendEvent.OpenUri, e.payload.paths);
         }
       }),
@@ -1012,9 +1020,11 @@ export function AudioProvider({ children }: ChildrenProp) {
   useEffect(() => {
     if (!IS_DESKTOP || IS_APPLE || !toneRef.current) return;
     if (config.useMusicTitleAsWindowTitle && currSong?.title) {
-      MAIN_WINDOW.setTitle(`${currSong.title} - ${t('common.stringMusic')}`);
+      MAIN_WINDOW.setTitle(
+        `${currSong.title} - ${t('common.stringMusicPlayer')}`,
+      );
     } else {
-      MAIN_WINDOW.setTitle(t('common.stringMusic'));
+      MAIN_WINDOW.setTitle(t('common.stringMusicPlayer'));
     }
   }, [config.useMusicTitleAsWindowTitle, currSong?.title, t]);
 
@@ -1035,31 +1045,37 @@ export function AudioProvider({ children }: ChildrenProp) {
     }
   }, [config.useCoverAsIcon, currSong?.cover]);
 
+  const ctxVal = useMemo(
+    () => ({
+      ...initVal,
+      currIdx,
+      prevIdx,
+      nextIdx,
+      playQueue,
+      paused,
+      pending,
+      lyric,
+      currBuffer: currBuffer?.[1],
+      setLyric,
+    }),
+    [currBuffer, currIdx, lyric, nextIdx, paused, pending, playQueue, prevIdx],
+  );
+
   return (
-    <Context.Provider
-      value={{
-        ...initVal,
-        currIdx,
-        prevIdx,
-        nextIdx,
-        playQueue,
-        paused,
-        pending,
-        currentTime,
-        lyric,
-        currBuffer: currBuffer?.[1],
-        setLyric,
-      }}
-    >
-      {children}
+    <>
+      <Context.Provider value={ctxVal}>
+        <AudioTimeContext.Provider value={currentTime}>
+          {children}
+        </AudioTimeContext.Provider>
+      </Context.Provider>
       {opening && (
-        <div className='fixed flex items-center gap-2 inset-e-2 bottom-2 z-10000 pointer-events-none'>
+        <div className='fixed flex items-center gap-2 inset-e-8 bottom-8 z-10000 pointer-events-none'>
           <CircularProgress size={24} />
           <div className='text-shadow-lg text-shadow-background-paper'>
             {t('media.loading')}
           </div>
         </div>
       )}
-    </Context.Provider>
+    </>
   );
 }

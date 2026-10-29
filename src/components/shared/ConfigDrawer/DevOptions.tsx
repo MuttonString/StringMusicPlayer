@@ -83,6 +83,7 @@ export default function DevOptions({ refs }: RefsProp) {
         control={
           <>
             <TextField
+              dir='ltr'
               multiline
               fullWidth
               size='small'

@@ -120,33 +120,40 @@ export default function PlayQueueItem(props: Props) {
                 placement='top'
                 title={
                   <div className='flex flex-col'>
-                    <div>{row.title}</div>
+                    <div>
+                      <bdi dir='auto'>{row.title}</bdi>
+                    </div>
                     {row.translation && (
-                      <div className='opacity-70'>({row.translation})</div>
+                      <div className='opacity-70'>
+                        <bdi dir='auto'>
+                          (<bdi dir='auto'>{row.translation}</bdi>)
+                        </bdi>
+                      </div>
                     )}
                   </div>
                 }
               >
                 <div
                   className={classNames(
-                    'w-fit',
+                    'w-fit flex gap-1',
                     selected || hovering
                       ? 'max-w-[calc(100%-2.5rem)]'
                       : 'max-w-full',
                   )}
                 >
-                  <div
+                  <bdi
+                    dir='auto'
                     className={classNames(
                       'truncate',
                       row.src === currSrc && 'text-primary font-bold',
                     )}
                   >
                     {row.title}
-                  </div>
+                  </bdi>
                   {row.translation && (
-                    <div className='ms-2 truncate font-bold text-text-secondary'>
-                      ({row.translation})
-                    </div>
+                    <bdi dir='auto' className='truncate text-text-secondary'>
+                      (<bdi dir='auto'>{row.translation}</bdi>)
+                    </bdi>
                   )}
                 </div>
               </Tip>
@@ -207,16 +214,22 @@ export default function PlayQueueItem(props: Props) {
                       <Tip
                         title={
                           <div className='flex flex-col'>
-                            <div>{item.label}</div>
+                            <div>
+                              <bdi dir='auto'>{item.label}</bdi>
+                            </div>
                             {item.translation && (
                               <div className='opacity-70'>
-                                ({item.translation})
+                                <bdi dir='auto'>
+                                  (<bdi dir='auto'>{item.translation}</bdi>)
+                                </bdi>
                               </div>
                             )}
                           </div>
                         }
                       >
-                        <div className='truncate'>{item.label}</div>
+                        <bdi dir='auto' className='truncate'>
+                          {item.label}
+                        </bdi>
                       </Tip>
                       {idx !== arr.length - 1 && <div className='me-1'>;</div>}
                     </Fragment>

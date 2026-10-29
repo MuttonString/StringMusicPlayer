@@ -1,10 +1,10 @@
 {
-  "identifier": "com.muttonstring.string-music",
+  "identifier": "com.muttonstring.string-music-player",
   "app": {
     "windows": [
       {
         "label": "main",
-        "title": "String Music",
+        "title": "String Music Player",
         "width": 800,
         "height": 600,
         "minWidth": 400,

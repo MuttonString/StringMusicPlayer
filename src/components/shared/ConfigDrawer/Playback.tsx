@@ -42,18 +42,18 @@ const detuneMarks = [
   {
     value: -1200,
     label: (
-      <span className='tracking-tighter'>
+      <>
         8<i>vb</i>
-      </span>
+      </>
     ),
   },
   { value: 0, label: '♮' },
   {
     value: 1200,
     label: (
-      <span className='tracking-tighter'>
+      <>
         8<i>va</i>
-      </span>
+      </>
     ),
   },
 ];
@@ -208,41 +208,38 @@ export default function Playback({ refs }: RefsProp) {
         <FormHelperText>{t('config.speedTip')}</FormHelperText>
       </div>
 
-      <div>
-        <LabelControlPair
-          ref={addRef('detune')}
-          label={t('config.detune')}
-          control={
-            <div className='ms-2 me-2'>
-              <SliderAlt
-                value={detune}
-                onChange={(_, val) => {
-                  setDetune(val as number);
-                }}
-                onChangeCommitted={(_, val) =>
-                  updateConfig({
-                    detune: val as number,
-                  })
-                }
-                step={100}
-                min={-1200}
-                max={1200}
-                marks={detuneMarks}
-                valueLabelDisplay='auto'
-                valueLabelFormat={(val) => {
-                  if (val === 0) return 0;
-                  if (val === 100) return '♯';
-                  if (val === -100) return '♭';
-                  if (val > 0) return val / 100 + '♯';
-                  if (val < 0) return val / -100 + '♭';
-                }}
-                track={false}
-              />
-            </div>
-          }
-        />
-        <FormHelperText>{t('config.detuneTip')}</FormHelperText>
-      </div>
+      <LabelControlPair
+        ref={addRef('detune')}
+        label={t('config.detune')}
+        control={
+          <div className='ms-2 me-2'>
+            <SliderAlt
+              value={detune}
+              onChange={(_, val) => {
+                setDetune(val as number);
+              }}
+              onChangeCommitted={(_, val) =>
+                updateConfig({
+                  detune: val as number,
+                })
+              }
+              step={100}
+              min={-1200}
+              max={1200}
+              marks={detuneMarks}
+              valueLabelDisplay='auto'
+              valueLabelFormat={(val) => {
+                if (val === 0) return 0;
+                if (val === 100) return '♯';
+                if (val === -100) return '♭';
+                if (val > 0) return <bdi dir='ltr'>{val / 100}♯</bdi>;
+                if (val < 0) return <bdi dir='ltr'>{val / -100}♭</bdi>;
+              }}
+              track={false}
+            />
+          </div>
+        }
+      />
 
       <div>
         <Button
@@ -372,6 +369,7 @@ export default function Playback({ refs }: RefsProp) {
             />
           }
         />
+        <FormHelperText>{t('config.seekBySentenceTip')}</FormHelperText>
       </div>
 
       <div>

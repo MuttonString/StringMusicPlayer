@@ -14,13 +14,13 @@ const menuRef = createRef<Menu>();
 const actionRef = createRef<(event: TrayIconEvent) => void>();
 
 try {
-  await TrayIcon.removeById('StringMusic');
+  await TrayIcon.removeById('StringMusicPlayer');
 } catch {}
 const tray =
   !IS_DESKTOP || IS_APPLE
     ? null
     : await TrayIcon.new({
-        id: 'StringMusic',
+        id: 'StringMusicPlayer',
         icon: DEFAULT_WINDOW_ICON,
         showMenuOnLeftClick: false,
         action: (e) => actionRef.current?.(e),
@@ -38,8 +38,8 @@ export default function useTrayMenu() {
   useEffect(() => {
     if (!tray) return;
 
-    tray.setTitle(t('common.stringMusic'));
-    tray.setTooltip(t('common.stringMusic'));
+    tray.setTitle(t('common.stringMusicPlayer'));
+    tray.setTooltip(t('common.stringMusicPlayer'));
     tray.setMenu(menuRef.current || null);
   }, [t]);
   useEffect(() => {

@@ -317,8 +317,8 @@ export default function WindowAppeance({ refs }: RefsProp) {
                   </Button>
                 </Tip>
               </ButtonGroup>
-              <Tip title={path} disabled={!path}>
-                <FormHelperText className='truncate'>
+              <Tip title={<bdi dir='ltr'>{path}</bdi>} disabled={!path}>
+                <FormHelperText dir='ltr' className='truncate'>
                   {name || t('config.defaultPicture')}
                 </FormHelperText>
               </Tip>
@@ -381,17 +381,12 @@ export default function WindowAppeance({ refs }: RefsProp) {
                   {t('config.mica')}
                 </MenuItem>
               )}
-              <MenuItem value={BackgroundType.SinglePicture}>
-                {t('config.useCover')}
-              </MenuItem>
             </Select>
           }
         />
 
         <AnimatePresence initial={false}>
-          {[BackgroundType.Standard, BackgroundType.SinglePicture].includes(
-            config.backgroundMiniWindowType,
-          ) && (
+          {config.backgroundMiniWindowType === BackgroundType.Standard && (
             <motion.div
               className='flex gap-4 me-2 items-center pt-2'
               variants={VERTICAL}

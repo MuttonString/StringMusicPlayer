@@ -71,14 +71,18 @@ export default function EqualizerDialog({ open, onClose }: DialogBaseProps) {
                 {t('equalizerDialog.' + item)}
               </MenuItem>
             ))}
-            <MenuItem value='-'>{t('equalizerDialog.custom')}</MenuItem>
+            <MenuItem key='-' value='-'>
+              {t('equalizerDialog.custom')}
+            </MenuItem>
           </Select>
         </div>
 
         <div className='flex w-full justify-center'>
-          <div className='flex flex-col justify-between items-end text-sm text-text-secondary h-64 mt-3.5'>
+          <div className='flex flex-col justify-between items-end text-sm text-text-secondary h-64 mt-3.5 text-nowrap'>
             {marks.map((item) => (
-              <div key={item}>{item > 0 ? `+${item} db` : `${item} db`}</div>
+              <bdi dir='ltr' key={item}>
+                {item > 0 ? `+${item} db` : `${item} db`}
+              </bdi>
             ))}
           </div>
 
@@ -89,6 +93,7 @@ export default function EqualizerDialog({ open, onClose }: DialogBaseProps) {
             >
               <div className='h-60 mt-6 mb-2'>
                 <Slider
+                  dir='ltr'
                   orientation='vertical'
                   valueLabelDisplay='auto'
                   marks={marks.map((value) => ({
@@ -113,11 +118,14 @@ export default function EqualizerDialog({ open, onClose }: DialogBaseProps) {
                   }}
                 />
               </div>
-              <div className='text-sm text-text-secondary tracking-tighter'>
+              <bdi
+                dir='ltr'
+                className='text-sm text-text-secondary tracking-tighter text-center'
+              >
                 {item.frequency >= 1000
                   ? `${item.frequency / 1000} kHz`
                   : `${item.frequency} Hz`}
-              </div>
+              </bdi>
             </div>
           ))}
         </div>

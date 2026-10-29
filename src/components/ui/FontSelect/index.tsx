@@ -63,11 +63,15 @@ export default function FontSelect({ value, onChange, onBlur }: Props) {
             <ListItem key={key} {...props}>
               <ListItemText
                 primary={
-                  <div style={{ fontFamily: option.original }}>
+                  <bdi dir='auto' style={{ fontFamily: option.original }}>
                     {option.localized}
-                  </div>
+                  </bdi>
                 }
-                secondary={option.original}
+                secondary={
+                  <bdi lang='en' dir='ltr'>
+                    {option.original}
+                  </bdi>
+                }
               />
             </ListItem>
           );

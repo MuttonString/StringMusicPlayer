@@ -57,14 +57,10 @@ export default function OperationButtons({ show }: Props) {
     setQueueOpen(true);
   }, [KeyCode.Ctrl, 'L']);
 
-  const [openInfoKey, openInfo] = useShortcutKey(
-    () => {
-      setMenuAnchor(null);
-      if (currSong) dialogRef.current(currSong.src);
-    },
-    [KeyCode.Ctrl, 'I'],
-    true,
-  );
+  const [openInfoKey, openInfo] = useShortcutKey(() => {
+    setMenuAnchor(null);
+    if (currSong) dialogRef.current(currSong.src);
+  }, [KeyCode.Ctrl, 'I']);
 
   const [openDrawerKey, openDrawer] = useShortcutKey(() => {
     setMenuAnchor(null);

@@ -40,7 +40,7 @@ impl MediaControlManager {
 
         let config = PlatformConfig {
             dbus_name: "string_music",
-            display_name: "String Music",
+            display_name: "String Music Player",
             hwnd,
         };
 

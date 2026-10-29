@@ -40,13 +40,10 @@ export default function useShortcutKey(
 
       const action = actionRef.current;
       const keys = keysRef.current;
-      const alt = keys.includes(KeyCode.Alt) ? e.altKey : true;
-      const shift = keys.includes(KeyCode.Shift) ? e.shiftKey : true;
-      const ctrl = keys.includes(KeyCode.Ctrl)
-        ? IS_APPLE
-          ? e.metaKey
-          : e.ctrlKey
-        : true;
+      const alt = keys.includes(KeyCode.Alt) === e.altKey;
+      const shift = keys.includes(KeyCode.Shift) === e.shiftKey;
+      const ctrl =
+        keys.includes(KeyCode.Ctrl) === (IS_APPLE ? e.metaKey : e.ctrlKey);
 
       if (
         alt &&

@@ -7,7 +7,7 @@ import SwipeableDrawer from '@mui/material/SwipeableDrawer';
 import { type, version } from '@tauri-apps/plugin-os';
 import classNames from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AppIcon from '../../../assets/icon.svg?react';
 import { BASE_COMPONENT } from '../../../constants/animation';
@@ -91,6 +91,8 @@ export default function TitleBar() {
     isRTL() ? KeyCode.Left : KeyCode.Right,
   ]);
 
+  const closeNav = useCallback(() => setNavigatorOpen(false), []);
+
   return (
     <header
       data-tauri-drag-region
@@ -111,7 +113,7 @@ export default function TitleBar() {
             }
           >
             <AppIcon className='min-w-6 h-6' />
-            <span>{t('common.stringMusic')}</span>
+            <span>{t('common.stringMusicPlayer')}</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -127,7 +129,7 @@ export default function TitleBar() {
         >
           <NavigatorList
             className='w-(--side-bar-width)!'
-            onButtonClicked={() => setNavigatorOpen(false)}
+            onButtonClicked={closeNav}
             inDrawer
           />
         </SwipeableDrawer>

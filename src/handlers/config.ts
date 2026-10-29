@@ -19,9 +19,6 @@ const listenDevKey = (e: KeyboardEvent) => {
     (primaryKey && e.shiftKey && e.key.toLowerCase() === 'i') ||
     e.key === 'F12'
   ) {
-    e.preventDefault();
-    e.stopImmediatePropagation();
-    e.stopPropagation();
     invoke('open_devtools');
   } else if ((primaryKey && e.key.toLowerCase() === 'r') || e.key === 'F5') {
     location.reload();
@@ -110,7 +107,7 @@ const setRandomPicture = async (path: string, opacity: number) => {
  * 映射为应用某设置项的对应函数
  */
 export const applyConfigFnMap: {
-  [key in keyof AppConfig]?: (value: AppConfig[key]) => void;
+  [key in keyof AppConfig]?: (value: AppConfig[key], config: AppConfig) => void;
 } = {
   language(value) {
     setTimeout(async () => {
@@ -137,7 +134,7 @@ export const applyConfigFnMap: {
         break;
     }
   },
-  backgroundMainWindowType(value) {
+  backgroundMainWindowType(value, config) {
     if (WINDOW_LABEL !== 'main') return;
     const style = document.body.style;
 
@@ -159,34 +156,34 @@ export const applyConfigFnMap: {
         break;
       case BackgroundType.RandomPictures:
         setRandomPicture(
-          window.__CONFIG__.backgroundMainWindowPath,
-          window.__CONFIG__.backgroundMainWindowOpacity,
+          config.backgroundMainWindowPath,
+          config.backgroundMainWindowOpacity,
         );
         break;
       default:
         setSinglePicture(
-          window.__CONFIG__.backgroundMainWindowPath,
-          window.__CONFIG__.backgroundMainWindowOpacity,
+          config.backgroundMainWindowPath,
+          config.backgroundMainWindowOpacity,
         );
         break;
     }
   },
-  backgroundMainWindowOpacity(value) {
+  backgroundMainWindowOpacity(value, config) {
     if (
       [BackgroundType.SinglePicture, BackgroundType.RandomPictures].includes(
-        window.__CONFIG__.backgroundMainWindowType,
+        config.backgroundMainWindowType,
       )
     ) {
       setBgColor(value);
     }
   },
-  backgroundMainWindowPath(value) {
-    switch (window.__CONFIG__.backgroundMainWindowType) {
+  backgroundMainWindowPath(value, config) {
+    switch (config.backgroundMainWindowType) {
       case BackgroundType.RandomPictures:
-        setRandomPicture(value, window.__CONFIG__.backgroundMainWindowOpacity);
+        setRandomPicture(value, config.backgroundMainWindowOpacity);
         break;
       case BackgroundType.SinglePicture:
-        setSinglePicture(value, window.__CONFIG__.backgroundMainWindowOpacity);
+        setSinglePicture(value, config.backgroundMainWindowOpacity);
         break;
     }
   },
